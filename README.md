@@ -329,6 +329,39 @@ Obol lifts the wormhole from 39 to 50, and Cerberus to 52, nearly level with L1.
 never goes past L1: when L1 fails, the true support isn't among the top-ranked coordinates of
 any of these rankings, so there is nothing to count. Beyond L1, the problem is the ranking.
 
+## E17. Pandora: past the ceiling
+
+E16's lesson was that past L1, the problem is the ranking. **Pandora** opens many small
+vessels. Each is basis pursuit on 60 columns: the 20 best-scored so far and 40 at random.
+Small vessels are easy problems, and each one adds its answer to the scores. Every 5 vessels,
+least squares on the 39 best-scored columns tries to fit all 40 equations exactly. A hit is
+self-certifying ([THEORY.md](THEORY.md)): the true support is inside, and least squares
+returns the true signal. [charon/pandora.py](charon/pandora.py), 100 new problems per row,
+up to 200 vessels ([results/pandora.txt](results/pandora.txt)):
+
+| nonzeros | L1 | reweighted L1 | iterative support detection | **Pandora** | solved only by Pandora / only by ISD |
+|---|---|---|---|---|---|
+| 8 | 81 | 83 | 93 | **95** | 2 / 0 |
+| 11 | 31 | 32 | 50 | **72** | 25 / 3 |
+| 14 | 3 | 3 | 6 | **21** | 16 / 1 |
+| 17 | 0 | 0 | 0 | **6** | 6 / 0 |
+
+Iterative support detection (Wang and Yin, 2010) is the strongest baseline here, the published
+method known to beat L1 in this setting. Pandora recovers more at every sparsity level, and the
+gap widens as the problems get harder: 72 against 50 at 11 nonzeros, 21 against 6 at 14. On the
+same problems it misses only 4 that ISD solves. Its relatives are Random Lasso (2011) and
+stability selection (2010). The recipe of small biased vessels plus an exact-fit stopping
+certificate was not found in a literature search, and no randomized ensemble was found
+reported to beat the L1 transition. One limit: Pandora costs up to 200 linear programs per
+problem where L1 costs 1.
+
+Side runs (not in the script, 60 problems each):
+
+- **Hesperides**, ten vessel-solvers on a fixed 22-edge graph, mixing vessel sizes, is about as
+  good as Pandora and never better (39 against 42 at 11 nonzeros, 11 against 13 at 14).
+- **Plato**, a measurement design with half the coherence (0.32 against 0.61), helps L1 at 11
+  nonzeros (28 against 20). It hurts every method at 14 (L1 4 to 0, Pandora 16 to 14).
+
 Learning the wormhole instead of picking it worked better. That experiment needs torch and
 lives in [styx](https://github.com/EgorKhaklin/styx).
 
@@ -355,9 +388,9 @@ Woodworth et al., "Kernel and Rich Regimes in Overparametrized Models" (COLT 202
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -e '.[test]'
-.venv/bin/python -m pytest -q              # 60 tests
+.venv/bin/python -m pytest -q              # 64 tests
 .venv/bin/python -m charon.experiments     # ~22 s; writes figures/ and results/
-.venv/bin/python -m charon.frontier        # ~25 min; E9 to E16 (or name them: e13 e14)
+.venv/bin/python -m charon.frontier        # ~30 min; E9 to E17 (or name them: e17)
 ```
 
 To add a transform, define `T`, `dT` and `inverse` in [charon/transforms.py](charon/transforms.py)

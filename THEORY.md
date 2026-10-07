@@ -139,3 +139,27 @@ purer state. The commuting theory makes every fixed elementwise wormhole a conve
 (Theorem 1), so a preference for purity has to come from somewhere else. The Born wormhole
 supplies it through non-commuting, non-convex dynamics. E13 and E14 measure what that
 preference buys and what it costs.
+
+## Past the ceiling: the certificate behind Pandora (E16, E17)
+
+*Let `y = X w*` with `w*` supported on `T`, `|T| = k`, `X` an `n × d` Gaussian matrix. With
+probability one: if a set `C` of at most `n − 1` columns has `y` in the span of `X_C`, then
+`T ⊆ C`, and least squares on `C` returns `w*` exactly.*
+
+*Sketch.* `X_C` has full column rank, so least squares on `C` is unique. Suppose `T ⊄ C`, and
+split `w*` into `a` on `T ∩ C` and `b ≠ 0` on `T \ C`. Then `y ∈ span(X_C)` exactly when
+`X_{T∖C} b ∈ span(X_C)`. For Gaussian `X` that set of `b` is a proper subspace of the space `b`
+lives in, because `span(X_C)` has dimension at most `n − 1` and the columns outside `C` are in
+general position with respect to it. So a random `w*` (continuous on its support) avoids it with
+probability one. There are finitely many sets `C`, so a union bound covers a `C` chosen after
+seeing `y`. ∎ (The fact is
+known in substance: with `n ≥ k + 1` measurements a fixed sparse signal is generically the
+unique sparsest solution. It is used here as a stopping test.)
+
+So recovery needs only a ranking that puts all of `T` in its top `n − 1`, a far weaker demand
+than L1's exactness. Pandora builds that ranking from many basis-pursuit solves on small random
+column subsets, biased toward the current best. A subset of 60 columns is a much easier problem
+than 200. The randomness is what the ceiling theorem rules out for a single fixed wormhole.
+Its relatives are Random Lasso (Wang et al., 2011), stability selection (Meinshausen and
+Bühlmann, 2010) and iterative support detection (Wang and Yin, 2010), the strongest baseline in
+E17.

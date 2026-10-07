@@ -1,0 +1,10 @@
+## E17. Pandora: many small vessels, one certificate (100 problems per row)
+
+| nonzeros | L1 | reweighted L1 | iterative support detection (ISD) | Pandora | Pandora only / ISD only | median Pandora rounds |
+|---|---|---|---|---|---|---|
+| 8 | 81 | 83 | 93 | 95 | 2 / 0 | 5 |
+| 11 | 31 | 32 | 50 | 72 | 25 / 3 | 25 |
+| 14 | 3 | 3 | 6 | 21 | 16 / 1 | 200 |
+| 17 | 0 | 0 | 0 | 6 | 6 / 0 | 200 |
+
+EXIT 0

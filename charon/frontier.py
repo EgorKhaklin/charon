@@ -1,8 +1,8 @@
 """Wormholes within wormholes (E9), wormhole jumps (E10), where a wormhole ends (E11),
 the ceiling on what it can recover (E12), quantum wormholes (E13, E14), schedules past the
-ceiling (E15) and support counting (E16).
+ceiling (E15), support counting (E16) and Pandora (E17).
 
-    python -m charon.frontier [e9 ... e16]     # about 25 minutes for all seven
+    python -m charon.frontier [e9 ... e17]     # about 25 minutes for all seven
 """
 
 import itertools
@@ -304,13 +304,36 @@ def e16_support_counting():
                   "Cerberus: three marked rounds"], rows)
 
 
+def e17_pandora():
+    print("## E17. Pandora: many small vessels, one certificate (100 problems per row)\n")
+    from .pandora import basis_pursuit, iterative_support_detection, pandora, reweighted_l1
+    rows = []
+    for k in (8, 11, 14, 17):
+        hits = {"L1": [], "reweighted L1": [], "iterative support detection": [], "Pandora": []}
+        rounds = []
+        for seed in range(1000, 1100):
+            X, y, wt = sparse_problem(seed, k=k)
+            hits["L1"].append(rel_err(basis_pursuit(X, y)[0], wt) < 1e-2)
+            hits["reweighted L1"].append(rel_err(reweighted_l1(X, y), wt) < 1e-2)
+            hits["iterative support detection"].append(
+                rel_err(iterative_support_detection(X, y), wt) < 1e-2)
+            w, r = pandora(X, y, np.random.default_rng(seed))
+            hits["Pandora"].append(w is not None and rel_err(w, wt) < 1e-2)
+            rounds.append(r)
+        P, I = np.array(hits["Pandora"]), np.array(hits["iterative support detection"])
+        rows.append([k] + [sum(v) for v in hits.values()] +
+                     [f"{(P & ~I).sum()} / {(I & ~P).sum()}", int(np.median(rounds))])
+    return table(["nonzeros", "L1", "reweighted L1", "iterative support detection (ISD)",
+                  "Pandora", "Pandora only / ISD only", "median Pandora rounds"], rows)
+
+
 def main():
     import sys
     FIG.mkdir(exist_ok=True)
     RES.mkdir(exist_ok=True)
     runs = {"e9": e9_nested, "e10": e10_jumps, "e11": e11_destination, "e12": e12_ceiling,
             "e13": e13_quantum_noiseless, "e14": e14_quantum_noisy, "e15": e15_schedules,
-            "e16": e16_support_counting}
+            "e16": e16_support_counting, "e17": e17_pandora}
     want = set(sys.argv[1:]) or set(runs)
     md = [f() for k, f in runs.items() if k in want]
     if want == set(runs):
