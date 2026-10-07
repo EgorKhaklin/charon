@@ -78,3 +78,40 @@ def iterative_support_detection(X, y, iters=8, beta=2.0):
         detected = np.abs(w) > np.abs(w).max() / beta ** (t + 1)
         w = basis_pursuit(X, y, weights=np.where(detected, 0.0, 1.0))[0]
     return w
+
+
+def lasso(X, y, cols=None, alpha=1e-3):
+    """L1-penalized least squares on `cols`: basis pursuit relaxed for noisy y."""
+    from sklearn.linear_model import Lasso
+    d = X.shape[1]
+    cols = np.arange(d) if cols is None else np.asarray(cols)
+    w = np.zeros(d)
+    w[cols] = Lasso(alpha=alpha, fit_intercept=False, max_iter=20000).fit(X[:, cols], y).coef_
+    return w
+
+
+def certify_noisy(X, y, score, sigma, max_s=30, slack=1.5):
+    """The smallest top-s support whose least-squares residual is at the noise floor,
+    |r|^2 <= slack * sigma^2 * (n - s); its least-squares fit, or None."""
+    n = X.shape[0]
+    order = np.argsort(-score)
+    for s in range(1, max_s + 1):
+        S = order[:s]
+        c, *_ = np.linalg.lstsq(X[:, S], y, rcond=None)
+        r = y - X[:, S] @ c
+        if r @ r <= slack * sigma**2 * (n - s):
+            w = np.zeros(X.shape[1])
+            w[S] = c
+            return w
+    return None
+
+
+def atlas(X, y, sigma, rng, rounds=100, top=20, rest=40, decay=0.7):
+    """Pandora for noisy measurements: lasso vessels, then the noise-floor certificate."""
+    score = np.abs(lasso(X, y))
+    others = np.arange(X.shape[1])
+    for _ in range(rounds):
+        T = np.argsort(-score)[:top]
+        R = rng.choice(np.setdiff1d(others, T), rest, replace=False)
+        score = decay * score + np.abs(lasso(X, y, np.concatenate([T, R])))
+    return certify_noisy(X, y, score, sigma)

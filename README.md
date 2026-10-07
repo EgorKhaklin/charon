@@ -29,9 +29,11 @@ Below, a **wormhole** is any reparameterization `T`: the optimizer moves `w`, th
   minimization (E12).
 - **Pandora** gets past the ceiling with many small randomized solves and a self-checking exact
   fit. At 11 nonzeros it recovers 72 of 100 signals, where the strongest baseline tested gets
-  50 and L1 gets 31 (E17).
+  50 and L1 gets 31 (E17). Its noisy version, Atlas, holds up under measurement noise (E18).
 - In quantum state tomography, the wormhole `ρ = AA†` prefers purer states, which no convex,
   basis-independent penalty can do (E13, E14).
+
+![Pandora vs L1](figures/pandora_vs_l1.png)
 
 ## The answer, in one line
 
@@ -257,6 +259,8 @@ computed exactly:
 | 10 | 53 | 34 to 35 | 0 | 0 |
 | 12 | 13 | 6 | 0 | 0 |
 
+![ceiling](figures/ceiling.png)
+
 In 1,600 wormhole runs, no wormhole ever recovered a vector L1 missed. L1's counts are the
 same whether the nonzeros are equal or random in size, because whether L1 succeeds depends only
 on the support and signs. `u² − v²` at a = 0.001 is never exact, as the theory's proposition
@@ -288,6 +292,8 @@ start lands closest to the truth, by a factor of 2 at 24 measurements. Its estim
 (purity 0.78 against 0.57 at 48). THEORY.md, Theorem 3, says why no convex method can do this.
 Any convex penalty that ignores the basis prefers the maximally mixed state. A pull toward
 purity has to come from the non-commuting dynamics of `AA†`.
+
+![quantum](figures/quantum.png)
 
 **E14. With shot noise, the pull toward purity is a prior.** Each Pauli is measured 100 or 1000
 times. Model selection uses 20% of the measurements held out, never the truth. 8 states per row:
@@ -362,6 +368,8 @@ up to 200 vessels ([results/pandora.txt](results/pandora.txt)):
 | 14 | 3 | 3 | 6 | **21** | 16 / 1 |
 | 17 | 0 | 0 | 0 | **6** | 6 / 0 |
 
+![Pandora vs L1](figures/pandora_vs_l1.png)
+
 Iterative support detection (Wang and Yin, 2010) is the strongest baseline here, the published
 method known to beat L1 in this setting. Pandora recovers more at every sparsity level, and the
 gap widens as the problems get harder: 72 against 50 at 11 nonzeros, 21 against 6 at 14. On the
@@ -369,7 +377,8 @@ same problems it misses only 4 that ISD solves. Its relatives are Random Lasso (
 stability selection (2010). The recipe of small biased vessels plus an exact-fit stopping
 certificate was not found in a literature search, and no randomized ensemble was found
 reported to beat the L1 transition. One limit: Pandora costs up to 200 linear programs per
-problem where L1 costs 1.
+problem where L1 costs 1. More vessels do not help past about a hundred. In a side run at 14
+nonzeros, budgets of 111, 240, 418, 444 and 666 vessels all certified the same 11 of 60.
 
 Side runs (not in the script, 60 problems each):
 
@@ -377,6 +386,27 @@ Side runs (not in the script, 60 problems each):
   good as Pandora and never better (39 against 42 at 11 nonzeros, 11 against 13 at 14).
 - **Plato**, a measurement design with half the coherence (0.32 against 0.61), helps L1 at 11
   nonzeros (28 against 20). It hurts every method at 14 (L1 4 to 0, Pandora 16 to 14).
+
+## E18. Atlas: Pandora under noise
+
+Real measurements are noisy, and an exact fit no longer exists. **Atlas** keeps Pandora's
+vessels, solved by lasso instead of basis pursuit. It takes the smallest top-ranked support
+whose least-squares residual has fallen to the noise floor. 40 problems per row; "within 5%"
+means relative error below 0.05 ([results/atlas.txt](results/atlas.txt)):
+
+| noise | nonzeros | lasso (cross-validated) | lasso, then least squares on its support | **Atlas** |
+|---|---|---|---|---|
+| 0.01 | 8 | 19/40 | 27/40 | **39/40** |
+| 0.01 | 11 | 3/40 | 9/40 | **21/40** |
+| 0.01 | 14 | 0/40 | 0/40 | **4/40** |
+| 0.05 | 8 | 18/40 | 27/40 | **38/40** |
+| 0.05 | 11 | 3/40 | 9/40 | **25/40** |
+| 0.05 | 14 | 0/40 | 0/40 | **3/40** |
+
+![Atlas](figures/atlas.png)
+
+The noise-floor test needs the noise level, which this experiment gives it. In practice that
+level has to be estimated.
 
 Learning the wormhole instead of picking it worked better. That experiment needs torch and
 lives in [styx](https://github.com/EgorKhaklin/styx).
@@ -406,7 +436,8 @@ Woodworth et al., "Kernel and Rich Regimes in Overparametrized Models" (COLT 202
 python -m venv .venv && .venv/bin/pip install -e '.[test]'
 .venv/bin/python -m pytest -q              # 64 tests
 .venv/bin/python -m charon.experiments     # ~22 s; writes figures/ and results/
-.venv/bin/python -m charon.frontier        # ~30 min; E9 to E17 (or name them: e17)
+.venv/bin/python -m charon.frontier        # ~35 min; E9 to E18 (or name some: e17 e18)
+.venv/bin/python -m charon.figures         # redraws the comparison figures from results/
 ```
 
 To add a transform, define `T`, `dT` and `inverse` in [charon/transforms.py](charon/transforms.py)
@@ -415,10 +446,13 @@ test cover it automatically.
 
 ## Limits
 
-This is one-dimensional regression on synthetic data, plus one small sparse-recovery problem.
-Nothing here is a claim about deep networks, and the "best" learning rates come from a grid,
-not an optimizer. The stability limit is a local prediction at the optimum, and the tests
-check it only near the optimum.
+Everything here is synthetic and small. E1 to E8 are one-dimensional regression. The sparse
+problems are random Gaussian systems of 40 equations in 200 unknowns, and the quantum
+experiments use 4 qubits. Pandora's gains are measured on that one problem family with 40 to 100
+problems per cell, against the baselines named in each table. Nothing here is a claim about
+real data or large models. Learning rates come from grids, not an optimizer. THEORY.md's
+results are proved under the assumptions it states (gradient flow, a fixed elementwise metric,
+a start at zero, Gaussian matrices for the certificate).
 
 ## License
 

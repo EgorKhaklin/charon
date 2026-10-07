@@ -1,8 +1,9 @@
 """Wormholes within wormholes (E9), wormhole jumps (E10), where a wormhole ends (E11),
 the ceiling on what it can recover (E12), quantum wormholes (E13, E14), schedules past the
-ceiling (E15), support counting (E16) and Pandora (E17).
+ceiling (E15), support counting (E16), Pandora (E17) and
+Atlas, Pandora under noise (E18).
 
-    python -m charon.frontier [e9 ... e17]     # about 25 minutes for all seven
+    python -m charon.frontier [e9 ... e18]     # about 25 minutes for all seven
 """
 
 import itertools
@@ -327,13 +328,42 @@ def e17_pandora():
                   "Pandora", "Pandora only / ISD only", "median Pandora rounds"], rows)
 
 
+def e18_atlas():
+    print("## E18. Atlas: Pandora with noisy measurements (40 problems per row)\n")
+    from sklearn.linear_model import LassoCV
+    from .pandora import atlas
+    rows = []
+    for sigma in (0.01, 0.05):
+        for k in (8, 11, 14):
+            errs = {"lasso (cross-validated)": [], "lasso, then least squares on its support": [],
+                    "Atlas": []}
+            for seed in range(7000, 7040):
+                X, y0, wt = sparse_problem(seed, k=k)
+                rng = np.random.default_rng(seed)
+                y = y0 + sigma * rng.normal(size=len(y0))
+                wl = LassoCV(fit_intercept=False, cv=5, max_iter=20000).fit(X, y).coef_
+                errs["lasso (cross-validated)"].append(rel_err(wl, wt))
+                S = np.flatnonzero(np.abs(wl) > 1e-3)[:39]
+                wr = np.zeros(X.shape[1])
+                if len(S):
+                    wr[S] = np.linalg.lstsq(X[:, S], y, rcond=None)[0]
+                errs["lasso, then least squares on its support"].append(rel_err(wr, wt))
+                wa = atlas(X, y, sigma, rng)
+                errs["Atlas"].append(rel_err(wa, wt) if wa is not None else 1.0)
+            rows.append([sigma, k] + [f"{(np.array(v) < 0.05).sum()}/40 ({np.median(v):.3f})"
+                                      for v in errs.values()])
+    return table(["noise sigma", "nonzeros", "lasso (CV): within 5% (median error)",
+                  "lasso + least squares", "Atlas"], rows)
+
+
 def main():
     import sys
     FIG.mkdir(exist_ok=True)
     RES.mkdir(exist_ok=True)
     runs = {"e9": e9_nested, "e10": e10_jumps, "e11": e11_destination, "e12": e12_ceiling,
             "e13": e13_quantum_noiseless, "e14": e14_quantum_noisy, "e15": e15_schedules,
-            "e16": e16_support_counting, "e17": e17_pandora}
+            "e16": e16_support_counting, "e17": e17_pandora,
+            "e18": e18_atlas}
     want = set(sys.argv[1:]) or set(runs)
     md = [f() for k, f in runs.items() if k in want]
     if want == set(runs):
