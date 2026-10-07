@@ -63,3 +63,13 @@ def test_mass_energy_is_identity_with_lr_times_c4():
     a = train(x, y, me, lr=1e-5, steps=200, w0=0.5 / c**2, lr_b=1.0)
     b = train(x, y, IDENTITY, lr=1e-5 * c**4, steps=200, w0=0.5, lr_b=1.0)
     np.testing.assert_allclose(a.v[:, 0], b.v[:, 0], rtol=1e-10)
+
+
+@pytest.mark.parametrize("tf", DEFAULT, ids=lambda t: t.name)
+def test_moment_loss_equals_direct_loss(tf):
+    """train() tracks the loss from data moments; it must match the sum over points,
+    including for x that is not centred (the cross term E[x] is live)."""
+    xs, ys = make_data(n=37, w=-1.5, b=4.0, noise=3.0, seed=3)
+    xs = xs + 2.0
+    run = train(xs, ys, tf, lr=1e-4, steps=50, w0=[-1.1, 0.3, 1.7], b0=0.7)
+    np.testing.assert_allclose(run.loss, loss(xs, ys, run.v, run.b_hist), rtol=1e-11)

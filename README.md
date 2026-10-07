@@ -108,16 +108,21 @@ equations, 200 unknowns and a true weight with 5 nonzeros. Plain gradient descen
 lands on the minimum-norm fit, which is spread out and wrong. Writing `w = u² − v²` and
 starting small lands on the sparse truth:
 
-| parameterization | train residual | error vs true w | true nonzeros found |
+| parameterization | steps to fit (residual 1e-8) | error vs true w | true nonzeros found |
 |---|---|---|---|
-| `w` | 0.0 | 0.913 | 2/5 |
-| `u² − v²`, init 0.1 | 6e-15 | 0.649 | 3/5 |
-| `u² − v²`, init 0.01 | 2e-12 | 0.288 | 5/5 |
-| `u² − v²`, init 0.0001 | 6e-4 | 0.029 | 5/5 |
+| `w` | 500 | 0.913 | 2/5 |
+| `u² − v²`, init 0.1 | 5,000 | 0.649 | 3/5 |
+| `u² − v²`, init 0.01 | 36,000 | 0.288 | 5/5 |
+| `u² − v²`, init 0.0001 | over 400,000 (residual 4e-6) | 0.028 | 5/5 |
 
-The smaller the starting size, the sparser the answer and the slower the training. The 0.0001
-run hasn't fully converged after 60,000 steps. This is the known implicit bias of a
-squared reparameterization. It is the setting where the "wormhole" idea has real work to do.
+The smaller the starting size, the sparser the answer and the slower the training. The
+smallest start costs about 1000x the steps of plain descent, and its last digits of fit arrive
+very slowly, because the coordinates still carrying the residual are tiny and so are their
+steps. Even this run is not exactly sparse: a few wrong coordinates reach about 0.03. Here the
+minimum-L1 fit equals the true weight exactly (checked once with a linear program), and the
+squared parameterization only approaches it as the start shrinks toward zero (a start of 1e-8
+gave error 0.004 in a side run). This is the known implicit bias of a squared
+reparameterization. It is the setting where the "wormhole" idea has real work to do.
 
 ![sparse](figures/sparse.png)
 
@@ -139,8 +144,8 @@ Woodworth et al., "Kernel and Rich Regimes in Overparametrized Models" (COLT 202
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -e '.[test]'
-.venv/bin/python -m pytest -q              # 19 tests
-.venv/bin/python -m charon.experiments     # ~30 s; writes figures/ and results/
+.venv/bin/python -m pytest -q              # 24 tests
+.venv/bin/python -m charon.experiments     # ~12 s; writes figures/ and results/
 ```
 
 To add a transform, define `T`, `dT` and `inverse` in [charon/transforms.py](charon/transforms.py)

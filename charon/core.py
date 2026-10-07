@@ -35,6 +35,7 @@ class Run:
     v: np.ndarray          # (steps, B), the effective weight T(w)
     grad_w: np.ndarray     # (steps, B), |dL/dw|
     b: np.ndarray          # (B,), final bias
+    b_hist: np.ndarray     # (steps, B), the bias at each step
 
 
 def train(x, y, tf: Transform, lr, steps=1000, w0=0.5, b0=0.0, lr_b=None):
@@ -48,31 +49,41 @@ def train(x, y, tf: Transform, lr, steps=1000, w0=0.5, b0=0.0, lr_b=None):
     dL/dw = mean((y_hat - y) x) * T'(w)  -- the chain rule, nothing more.
     A run that leaves the finite numbers is frozen at its last finite state
     and its later losses are inf.
+
+    The loss is quadratic in (v, b), so each step needs only the data's
+    moments, not the data: with d = (v - v*, b - b*),
+
+        L = L* + (1/2) [d_v^2 E[x^2] + 2 d_v d_b E[x] + d_b^2]
+
+    which costs O(B) per step instead of O(B N), and measures the excess
+    over L* directly instead of as a difference of two large numbers.
     """
     lr, w = np.broadcast_arrays(np.asarray(lr, float), np.asarray(w0, float))
     lr, w = lr.ravel().copy(), w.ravel().copy()
     lr_b = lr if lr_b is None else np.full_like(lr, lr_b)
     b = np.full_like(w, b0)
     alive = np.ones_like(w, bool)
-    out = {k: np.empty((steps, w.size)) for k in ("loss", "w", "v", "grad_w")}
+    out = {k: np.empty((steps, w.size)) for k in ("loss", "w", "v", "grad_w", "b")}
+    v_star, b_star, L_star = ols(x, y)
+    mx, mxx = np.mean(x), np.mean(x * x)
 
     with np.errstate(over="ignore", invalid="ignore"):
         for t in range(steps):
             v = tf.T(w)
-            err = v[:, None] * x + b[:, None] - y
-            L = 0.5 * np.mean(err**2, axis=1)
-            g_v = np.mean(err * x, axis=1)
+            dv, db = v - v_star, b - b_star
+            g_v = dv * mxx + db * mx           # mean(err * x)
+            g_b = dv * mx + db                 # mean(err)
+            L = L_star + 0.5 * (dv * g_v + db * g_b)
             g_w = g_v * tf.dT(w)
-            g_b = np.mean(err, axis=1)
 
             alive &= np.isfinite(L) & np.isfinite(g_w) & (np.abs(w) < 1e150)
             out["loss"][t] = np.where(alive, L, np.inf)
-            out["w"][t], out["v"][t], out["grad_w"][t] = w, v, np.abs(g_w)
+            out["w"][t], out["v"][t], out["grad_w"][t], out["b"][t] = w, v, np.abs(g_w), b
 
             w = np.where(alive, w - lr * g_w, w)
             b = np.where(alive, b - lr_b * g_b, b)
 
-    return Run(out["loss"], out["w"], out["v"], out["grad_w"], b)
+    return Run(out["loss"], out["w"], out["v"], out["grad_w"], b, out["b"])
 
 
 def steps_to(run: Run, target, rtol=1e-6):

@@ -196,35 +196,48 @@ def e6_sparse():
     y = X @ w_true
     lam = np.linalg.eigvalsh(X.T @ X / n).max()
 
-    def grad(w):
-        return X.T @ (X @ w - y) / n
+    # Each column is one run; every run stops at the same fit, residual <= 1e-8.
+    def fit(wfn, step, state, budget=400_000, check=500):
+        steps = np.full(state[0].shape[1], -1)
+        for t in range(0, budget, check):
+            for _ in range(check):
+                state = step(state)
+            r = np.linalg.norm(X @ wfn(state) - y[:, None], axis=0) / np.linalg.norm(y)
+            steps = np.where((steps < 0) & (r <= 1e-8), t + check, steps)
+            if (steps >= 0).all():
+                break
+        return wfn(state), steps, r
 
-    w = np.zeros(d)
-    for _ in range(20000):
-        w -= (1.0 / lam) * grad(w)
-    w_id = w
+    def id_step(s):
+        (w,) = s
+        return (w - (1.0 / lam) * X.T @ (X @ w - y[:, None]) / n,)
 
-    rows, fits = [], {"identity: w": w_id}
-    for alpha in (1e-1, 1e-2, 1e-4):
-        u = np.full(d, alpha)
-        v = np.full(d, alpha)
-        for _ in range(60000):
-            g = grad(u**2 - v**2)
-            u, v = u - (0.1 / lam) * 2 * u * g, v + (0.1 / lam) * 2 * v * g
-        fits[f"w = u^2 - v^2, init {alpha:g}"] = u**2 - v**2
+    def uv_step(s):
+        u, v = s
+        g = X.T @ (X @ (u**2 - v**2) - y[:, None]) / n
+        return u - (0.1 / lam) * 2 * u * g, v + (0.1 / lam) * 2 * v * g
 
-    for name, w in fits.items():
+    alphas = np.array([1e-1, 1e-2, 1e-4])
+    w_id, s_id, r_id = fit(lambda s: s[0], id_step, (np.zeros((d, 1)),))
+    w_uv, s_uv, r_uv = fit(lambda s: s[0] ** 2 - s[1] ** 2, uv_step,
+                     (np.tile(alphas, (d, 1)), np.tile(alphas, (d, 1))))
+    fits = {"identity: w": (w_id[:, 0], s_id[0], r_id[0])}
+    for j, a in enumerate(alphas):
+        fits[f"w = u^2 - v^2, init {a:g}"] = (w_uv[:, j], s_uv[j], r_uv[j])
+
+    rows = []
+    for name, (w, st, r) in fits.items():
         top = set(np.argsort(-np.abs(w))[:k])
-        rows.append([name, f"{np.linalg.norm(X @ w - y) / np.linalg.norm(y):.1e}",
+        rows.append([name, st if st >= 0 else f"over 400000 (residual {r:.0e})",
                      f"{np.linalg.norm(w - w_true) / np.linalg.norm(w_true):.3f}",
                      f"{len(top & set(support))}/{k}", f"{np.abs(w).sum():.2f}"])
-    md = table(["parameterization", "train residual", "error vs true w", "support found",
+    md = table(["parameterization", "steps to residual 1e-8", "error vs true w", "support found",
                 "L1 norm"], rows)
     print(f"True w: {k} nonzeros of {d}, {n} equations, L1 norm {np.abs(w_true).sum():.2f}.\n")
 
     fig, axes = plt.subplots(2, 1, figsize=(8, 4.6), sharex=True, sharey=True)
-    for ax, (name, w) in zip(axes, [("identity: w", w_id),
-                                     ("w = u^2 - v^2, init 0.0001", fits["w = u^2 - v^2, init 0.0001"])]):
+    for ax, name in zip(axes, ["identity: w", "w = u^2 - v^2, init 0.0001"]):
+        w = fits[name][0]
         ax.vlines(np.arange(d), 0, w, color=COLORS[0], linewidth=1.2)
         ax.scatter(support, w_true[support], s=36, facecolors="none", edgecolors=INK, zorder=3,
                    label="true nonzeros")
