@@ -34,6 +34,12 @@ And E = mc² itself? As a transform, `T(w) = c²·w` is plain linear regression 
 rate multiplied by `c⁴ ≈ 8×10³³`. It only converges for `lr < 7×10⁻³⁶` (E5). The constant
 carries no information. The shape of `T` is what matters.
 
+When many answers fit, the route does pick the destination, and [THEORY.md](THEORY.md) says
+exactly which one. It is the fit that minimizes `Σ φ(w_i)` with `φ'' = 1/T'(T⁻¹(w))²`, a
+convex penalty fixed by the transform's shape. The same note proves that such a transform,
+started from zero, can at best tie L1 minimization at finding sparse answers, uniformly over
+their sizes (E11, E12).
+
 ## The transforms
 
 | T(w) | T'(w) | what it does |
@@ -165,7 +171,7 @@ the curvature. The transform doesn't know the data.
 
 ## Wormholes within wormholes
 
-`python -m charon.frontier` (about 3 minutes; output in [results/frontier.txt](results/frontier.txt))
+`python -m charon.frontier` (about 10 minutes; output in [results/frontier.txt](results/frontier.txt))
 pushes the idea further on E6's sparse problem. The code is in
 [charon/wormholes.py](charon/wormholes.py).
 
@@ -206,6 +212,42 @@ jumping every 200 steps from a start of 0.1 lands within 0.03 of the plain 0.1 r
 problems (error 0.40 to 0.65, against 0.002 to 0.03 for a true tiny start). The dense fit
 forms in the first few hundred steps, and a jump that keeps the function also keeps that fit.
 
+**E11. The destination without the route.** For a wormhole that stays fixed during training,
+the place gradient descent ends is fixed in advance. It is the fit that minimizes
+`Σ φ(w_i)`, where `φ'' = 1/m` ([THEORY.md](THEORY.md), Theorem 1).
+[charon/destination.py](charon/destination.py) computes that point by solving 40 equations,
+with no training. Gradient descent then lands on it, up to an error proportional to the step
+size:
+
+| wormhole | predicted error vs true w | GD vs prediction, lr 0.25 | GD vs prediction, lr 0.025 |
+|---|---|---|---|
+| `u² − v²` metric, a = 0.01 (3 problems) | 0.32 to 0.59 | 2.4e-2 to 2.9e-2 | 2.6e-3 to 3.1e-3 |
+| log wormhole from styx (3 problems) | 0.0000 | 3e-5 to 1.5e-4 | 3e-5 to 1.3e-4 |
+
+This is charon's one-line answer made exact. The route belongs to `m`. The destination
+belongs to `φ`, and scaling `m` by any constant doesn't move it.
+
+**E12. The ceiling.** Theorem 2 in [THEORY.md](THEORY.md) shows that a fixed elementwise
+wormhole started at zero cannot beat L1 minimization uniformly. If it recovers a sparse vector
+with equal-size nonzeros, L1 recovers every vector with that support and those signs. The proof
+needs only that `φ'` never decreases, which holds because `m > 0`. Checked on 800 problems
+(6 to 12 nonzeros; sizes all equal, or uniform between 1 and 2), with each wormhole's destination
+computed exactly:
+
+| nonzeros | L1 exact | log wormhole exact | `u² − v²` (a = 0.001) exact | recovered by a wormhole but not by L1 |
+|---|---|---|---|---|
+| 6 | 98 / 100 | 91 to 92 | 0 | 0 |
+| 8 | 81 | 65 to 67 | 0 | 0 |
+| 10 | 53 | 34 to 35 | 0 | 0 |
+| 12 | 13 | 6 | 0 | 0 |
+
+In 1,600 wormhole runs, no wormhole ever recovered a vector L1 missed. L1's counts are the
+same whether the nonzeros are equal or random in size, because whether L1 succeeds depends only
+on the support and signs. `u² − v²` at a = 0.001 is never exact, as the theory's proposition
+predicts: with `m(0) > 0` a wormhole only approaches sparsity. The theory also names the ways
+out: a metric that changes during training, coupled coordinates, a start away from zero,
+large noisy steps, or a nonlinear model.
+
 Learning the wormhole instead of picking it worked better. That experiment needs torch and
 lives in [styx](https://github.com/EgorKhaklin/styx).
 
@@ -232,9 +274,9 @@ Woodworth et al., "Kernel and Rich Regimes in Overparametrized Models" (COLT 202
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -e '.[test]'
-.venv/bin/python -m pytest -q              # 45 tests
+.venv/bin/python -m pytest -q              # 53 tests
 .venv/bin/python -m charon.experiments     # ~22 s; writes figures/ and results/
-.venv/bin/python -m charon.frontier        # ~3 min; E9 and E10
+.venv/bin/python -m charon.frontier        # ~10 min; E9 to E12
 ```
 
 To add a transform, define `T`, `dT` and `inverse` in [charon/transforms.py](charon/transforms.py)

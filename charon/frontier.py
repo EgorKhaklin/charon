@@ -1,6 +1,7 @@
-"""Wormholes within wormholes (E9) and wormhole jumps (E10).
+"""Wormholes within wormholes (E9), wormhole jumps (E10), where a wormhole ends (E11)
+and the ceiling on what it can recover (E12).
 
-    python -m charon.frontier        # about 5 minutes; writes results/frontier.txt
+    python -m charon.frontier [e9 e10 e11 e12]     # about 10 minutes for all four
 """
 
 import itertools
@@ -14,6 +15,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
 from .experiments import COLORS, FIG, INK, INK2, RES, table  # noqa: E402
+from .destination import basis_pursuit, descend, destination, hadamard, log_wormhole  # noqa: E402
 from .transforms import IDENTITY  # noqa: E402
 from .wormholes import (SIGNED_SQUARE, SINH, compose, fit_hadamard, fit_transform, nest,  # noqa: E402
                         sparse_problem, tanh_cap)
@@ -102,11 +104,55 @@ def e10_jumps():
                   "true L1 norm"], rows)
 
 
+def e11_destination():
+    print("## E11. The destination without the route (THEORY.md, Theorem 1)\n")
+    rows = []
+    for name, m in [("u^2 - v^2 metric, a = 0.01", hadamard(1e-2)),
+                    ("u^2 - v^2 metric, a = 0.1", hadamard(1e-1)),
+                    ("log wormhole, f = 1e-3, tau = 3e-3", log_wormhole(1e-3, 3e-3))]:
+        for seed in range(3):
+            X, y, wt = sparse_problem(seed)
+            wd, res = destination(X, y, m)
+            gaps = [np.linalg.norm(descend(X, y, m, steps, lr) - wd) / np.linalg.norm(wd)
+                    for lr, steps in ((0.25, 20_000), (0.025, 200_000))]
+            rows.append([name, seed, f"{res:.0e}", f"{rel_err(wd, wt):.4f}", f"{gaps[0]:.1e}",
+                         f"{gaps[1]:.1e}"])
+    return table(["wormhole", "problem", "predicted fit residual", "predicted error vs true w",
+                  "GD vs predicted, lr 0.25", "GD vs predicted, lr 0.025"], rows)
+
+
+def e12_ceiling():
+    print("## E12. The ceiling: does any wormhole recover what L1 cannot? (Theorem 2)\n")
+    worms = {"log wormhole (f 1e-4, tau 1e-3)": log_wormhole(1e-4, 1e-3),
+             "u^2 - v^2 metric (a 1e-3)": hadamard(1e-3)}
+    rows = []
+    for magnitudes in ("all 1.5", "uniform 1 to 2"):
+        for k in (6, 8, 10, 12):
+            probs = []
+            for seed in range(1000, 1100):
+                X, y, wt = sparse_problem(seed, k=k)
+                if magnitudes == "all 1.5":
+                    wt = 1.5 * np.sign(wt)
+                    y = X @ wt
+                probs.append((X, y, wt))
+            l1 = np.array([rel_err(basis_pursuit(X, y), wt) < 1e-2 for X, y, wt in probs])
+            for name, m in worms.items():
+                ok = np.array([rel_err(destination(X, y, m)[0], wt) < 1e-2 for X, y, wt in probs])
+                rows.append([magnitudes, k, name, f"{ok.sum()}", f"{l1.sum()}",
+                             f"{(ok & ~l1).sum()}", f"{(l1 & ~ok).sum()}"])
+    return table(["nonzero sizes", "nonzeros", "wormhole", "wormhole exact (of 100)",
+                  "L1 exact", "wormhole only", "L1 only"], rows)
+
+
 def main():
+    import sys
     FIG.mkdir(exist_ok=True)
     RES.mkdir(exist_ok=True)
-    md = [e9_nested(), e10_jumps()]
-    Path(RES / "frontier.md").write_text("\n\n".join(md) + "\n")
+    want = set(sys.argv[1:]) or {"e9", "e10", "e11", "e12"}
+    runs = {"e9": e9_nested, "e10": e10_jumps, "e11": e11_destination, "e12": e12_ceiling}
+    md = [runs[k]() for k in ("e9", "e10", "e11", "e12") if k in want]
+    if want == set(runs):
+        Path(RES / "frontier.md").write_text("\n\n".join(md) + "\n")
 
 
 if __name__ == "__main__":

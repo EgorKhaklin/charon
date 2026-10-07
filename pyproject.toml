@@ -3,7 +3,7 @@ name = "charon"
 version = "0.1.0"
 description = "What a parameter transform T(w) does to gradient descent: a small, checked experiment."
 requires-python = ">=3.10"
-dependencies = ["numpy>=1.26", "matplotlib>=3.10"]
+dependencies = ["numpy>=1.26", "matplotlib>=3.10", "scipy>=1.11"]
 license = "MIT"
 
 [project.optional-dependencies]
