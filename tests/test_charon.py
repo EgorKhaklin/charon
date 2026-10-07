@@ -100,7 +100,8 @@ def test_vector_trainer_matches_scalar_in_one_dimension(tf):
 
     xc, yc = x - x.mean(), y - y.mean()
     S = np.array([[np.mean(xc * xc)]])
-    lrs = np.logspace(-4, np.log10(0.5 * curvature_limit(x, tf, v_star)), 7)
+    lim = curvature_limit(x, tf, v_star)
+    lrs = np.logspace(np.log10(0.01 * lim), np.log10(0.5 * lim), 7)
     vec = steps_to_fit_vec(S, np.array([v_star]), L_star, tf, lrs, [0.5], steps=3000)
     sca = steps_to(train(x, y, tf, lr=lrs, steps=3000, w0=0.5, b0=b_star, lr_b=1.0), L_star)
     assert np.all(vec >= 0) and np.all(sca >= 0)
