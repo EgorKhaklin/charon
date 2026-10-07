@@ -73,3 +73,16 @@ def test_moment_loss_equals_direct_loss(tf):
     xs = xs + 2.0
     run = train(xs, ys, tf, lr=1e-4, steps=50, w0=[-1.1, 0.3, 1.7], b0=0.7)
     np.testing.assert_allclose(run.loss, loss(xs, ys, run.v, run.b_hist), rtol=1e-11)
+
+
+def test_adam_removes_gradient_scale_but_not_parameter_scale():
+    """Adam on T(w) = c^2 w equals Adam on w at lr * c^2 (not c^4): Adam divides out
+    the c^2 in the gradient, but a step in w is still c^2 steps in v."""
+    from charon.core import ADAM
+
+    c = 7.0
+    b1, b2, eps = ADAM
+    a = train(x, y, mass_energy(c), lr=1e-3, steps=300, w0=0.5 / c**2, lr_b=1.0,
+              adam=(b1, b2, eps * c**2))
+    b = train(x, y, IDENTITY, lr=1e-3 * c**2, steps=300, w0=0.5, lr_b=1.0, adam=ADAM)
+    np.testing.assert_allclose(a.v[:, 0], b.v[:, 0], rtol=1e-9)

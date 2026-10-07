@@ -12,7 +12,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
-from .core import classify, curvature_limit, loss, make_data, ols, steps_to, train  # noqa: E402
+from .core import ADAM, classify, curvature_limit, loss, make_data, ols, steps_to, train  # noqa: E402
 from .transforms import C_LIGHT, DEFAULT, IDENTITY, mass_energy  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -252,6 +252,34 @@ def e6_sparse():
     return md
 
 
+def e7_adam(x, y, v_star, L_star, best_gd):
+    print(f"## E7. Adam instead of gradient descent (w0 = 0.5, {STEPS} step budget)\n")
+    lrs = np.logspace(-4, 1, 51)
+    w0 = np.linspace(-5, 5, 201)
+    rows = []
+    for tf in DEFAULT:
+        run = train(x, y, tf, lr=lrs, steps=STEPS, w0=0.5, lr_b=1.0, adam=ADAM)
+        s = steps_to(run, L_star, RTOL)
+        ok = s >= 0
+        i = np.argmin(np.where(ok, s, np.iinfo(int).max))
+        hi = f">= {lrs[-1]:g}" if ok[-1] else f"{lrs[ok].max():.3g}"
+        starts = train(x, y, tf, lr=lrs[i], steps=STEPS, w0=w0, lr_b=1.0, adam=ADAM)
+        n_adam = int((classify(starts, tf, v_star, L_star, RTOL) == "converged").sum())
+        gd = train(x, y, tf, lr=best_gd[tf.name], steps=STEPS, w0=w0, lr_b=1.0)
+        n_gd = int((classify(gd, tf, v_star, L_star, RTOL) == "converged").sum())
+        rows.append([tf.name, f"{lrs[i]:.2g}", int(s[i]), f"{lrs[ok].min():.2g} to {hi}",
+                     f"{n_gd}/201", f"{n_adam}/201"])
+    md = table(["transform", "best lr", "steps at best lr", "lr that converged",
+                "starts converged, GD", "starts converged, Adam"], rows)
+
+    me = mass_energy(C_LIGHT)
+    run = train(x, y, me, lr=lrs, steps=STEPS, w0=0.5 / C_LIGHT**2, lr_b=1.0, adam=ADAM)
+    ok = steps_to(run, L_star, RTOL) >= 0
+    print(f"T(w) = c^2 w under Adam: {ok.sum()}/{lrs.size} learning rates in "
+          f"[{lrs[0]:g}, {lrs[-1]:g}] converge (gradient descent needs lr < 7.3e-36).\n")
+    return md
+
+
 def main():
     FIG.mkdir(exist_ok=True)
     RES.mkdir(exist_ok=True)
@@ -269,6 +297,7 @@ def main():
     out["e4"] = e4_noise(best)
     out["e5"], out["e5_limit"] = e5_mass_energy(x, y, v_star, L_star)
     out["e6"] = e6_sparse()
+    out["e7"] = e7_adam(x, y, v_star, L_star, best)
     (RES / "summary.json").write_text(json.dumps(out, indent=2, default=float) + "\n")
 
 

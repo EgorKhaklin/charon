@@ -66,3 +66,15 @@ Predicted stable limit: lr < 2 / (c^4 E[x^2]) = 7.28e-36. c^4 = 8.08e+33.
 
 True w: 5 nonzeros of 200, 40 equations, L1 norm 7.81.
 
+## E7. Adam instead of gradient descent (w0 = 0.5, 5000 step budget)
+
+| transform | best lr | steps at best lr | lr that converged | starts converged, GD | starts converged, Adam |
+|---|---|---|---|---|---|
+| identity | 2.5 | 44 | 0.0016 to >= 10 | 201/201 | 160/201 |
+| w^2 | 0.63 | 92 | 0.0005 to >= 10 | 152/201 | 149/201 |
+| w^3 | 0.16 | 81 | 0.00032 to 3.16 | 49/201 | 145/201 |
+| exp(w) | 0.2 | 40 | 0.00025 to 2 | 149/201 | 176/201 |
+| c*tanh(w/c), c=5 | 0.79 | 23 | 0.002 to 5.01 | 201/201 | 186/201 |
+
+T(w) = c^2 w under Adam: 51/51 learning rates in [0.0001, 10] converge (gradient descent needs lr < 7.3e-36).
+

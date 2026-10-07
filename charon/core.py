@@ -38,8 +38,11 @@ class Run:
     b_hist: np.ndarray     # (steps, B), the bias at each step
 
 
-def train(x, y, tf: Transform, lr, steps=1000, w0=0.5, b0=0.0, lr_b=None):
+def train(x, y, tf: Transform, lr, steps=1000, w0=0.5, b0=0.0, lr_b=None, adam=None):
     """Gradient descent on w (and b), for a whole batch of (lr, w0) at once.
+
+    adam=(beta1, beta2, eps) swaps the w update for Adam; b keeps plain
+    gradient descent with lr_b, so the comparison stays about w.
 
     lr and w0 broadcast to a common shape B; one run per element. The bias
     gets its own step size lr_b (default lr). With x centred, the Hessian is
@@ -66,6 +69,7 @@ def train(x, y, tf: Transform, lr, steps=1000, w0=0.5, b0=0.0, lr_b=None):
     out = {k: np.empty((steps, w.size)) for k in ("loss", "w", "v", "grad_w", "b")}
     v_star, b_star, L_star = ols(x, y)
     mx, mxx = np.mean(x), np.mean(x * x)
+    m1, m2 = np.zeros_like(w), np.zeros_like(w)
 
     with np.errstate(over="ignore", invalid="ignore"):
         for t in range(steps):
@@ -80,10 +84,20 @@ def train(x, y, tf: Transform, lr, steps=1000, w0=0.5, b0=0.0, lr_b=None):
             out["loss"][t] = np.where(alive, L, np.inf)
             out["w"][t], out["v"][t], out["grad_w"][t], out["b"][t] = w, v, np.abs(g_w), b
 
-            w = np.where(alive, w - lr * g_w, w)
+            if adam is None:
+                step = lr * g_w
+            else:
+                b1, b2, eps = adam
+                m1 = b1 * m1 + (1 - b1) * g_w
+                m2 = b2 * m2 + (1 - b2) * g_w**2
+                step = lr * (m1 / (1 - b1 ** (t + 1))) / (np.sqrt(m2 / (1 - b2 ** (t + 1))) + eps)
+            w = np.where(alive, w - step, w)
             b = np.where(alive, b - lr_b * g_b, b)
 
     return Run(out["loss"], out["w"], out["v"], out["grad_w"], b, out["b"])
+
+
+ADAM = (0.9, 0.999, 1e-8)
 
 
 def steps_to(run: Run, target, rtol=1e-6):

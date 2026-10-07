@@ -126,6 +126,26 @@ reparameterization. It is the setting where the "wormhole" idea has real work to
 
 ![sparse](figures/sparse.png)
 
+**E7. Adam instead of gradient descent.** Adam divides each step by a running average of the
+gradient's size. That removes part of what a transform does, but not all of it:
+
+| transform | best lr | steps at best lr | lr that converged | starts converged, GD | starts converged, Adam |
+|---|---|---|---|---|---|
+| identity | 2.5 | 44 | 0.0016 to >= 10 | 201/201 | 160/201 |
+| w² | 0.63 | 92 | 0.0005 to >= 10 | 152/201 | 149/201 |
+| w³ | 0.16 | 81 | 0.00032 to 3.16 | 49/201 | 145/201 |
+| exp(w) | 0.2 | 40 | 0.00025 to 2 | 149/201 | 176/201 |
+| c·tanh(w/c), c=5 | 0.79 | 23 | 0.002 to 5.01 | 201/201 | 186/201 |
+
+Each step in `w` now has a bounded size, so blow-ups mostly disappear. Adam rescues `w³` from
+far starts (145 of 201, up from 49). But it is slower at its best than tuned gradient descent
+(23 to 92 steps, against 4 to 11), and identity and rapidity lose some starts they never lost
+under gradient descent. Under Adam, `v` moves by about `lr·|T'(w)|` per step instead of
+`lr·T'(w)²`. For E = mc², this means `T(w) = c²·w` under Adam is identity at `lr·c²`, not
+`lr·c⁴` (tested exactly). With the real c it converges at every learning rate from 1e-4 to
+10, where gradient descent needed `lr < 7×10⁻³⁶`. Adam cancels the c² in the gradient. It
+can't cancel the c² in the parameter.
+
 ## So which of the four outcomes?
 
 The original sketch listed four possible conclusions. For one-dimensional linear regression
@@ -144,8 +164,8 @@ Woodworth et al., "Kernel and Rich Regimes in Overparametrized Models" (COLT 202
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -e '.[test]'
-.venv/bin/python -m pytest -q              # 24 tests
-.venv/bin/python -m charon.experiments     # ~12 s; writes figures/ and results/
+.venv/bin/python -m pytest -q              # 25 tests
+.venv/bin/python -m charon.experiments     # ~15 s; writes figures/ and results/
 ```
 
 To add a transform, define `T`, `dT` and `inverse` in [charon/transforms.py](charon/transforms.py)
