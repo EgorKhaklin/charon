@@ -146,6 +146,23 @@ under gradient descent. Under Adam, `v` moves by about `lr·|T'(w)|` per step in
 10, where gradient descent needed `lr < 7×10⁻³⁶`. Adam cancels the c² in the gradient. It
 can't cancel the c² in the parameter.
 
+**E8. Several features on different scales.** One coordinate per feature, three features on
+scales 1, 10 and 100 (condition number about 10⁴). Each cell is the fewest steps to the optimum
+over 91 learning rates, within a 20,000-step budget:
+
+| true weights | identity | w / sd(x_i) | w² | w³ | exp(w) | c·tanh(w/c) |
+|---|---|---|---|---|---|---|
+| big weight on the small feature (3, 2, 0.5) | none | 4 | 8843 | 7580 | 3180 | none |
+| big weight on the big feature (0.5, 2, 3) | 17714 | 6 | none | none | none | 715 |
+| equal contributions (3, 0.3, 0.03) | none | 5 | 2217 | 601 | 5944 | none |
+
+A fixed linear rescale by each feature's spread, `T_i(w) = w / sd(x_i)`, takes 4 to 6 steps
+in every case. That is just standardizing the inputs, and it fixes the conditioning outright. The
+nonlinear transforms scale each step by the weight's own size (`w²` by 4|v|, `exp` by v²). They
+win when the large-scale features carry small weights, and lose badly when they don't. A
+transform helps only when its `T'(w)²` happens to track the inverse curvature. The data decide
+the curvature. The transform doesn't know the data.
+
 ## So which of the four outcomes?
 
 The original sketch listed four possible conclusions. For one-dimensional linear regression
@@ -164,8 +181,8 @@ Woodworth et al., "Kernel and Rich Regimes in Overparametrized Models" (COLT 202
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -e '.[test]'
-.venv/bin/python -m pytest -q              # 25 tests
-.venv/bin/python -m charon.experiments     # ~15 s; writes figures/ and results/
+.venv/bin/python -m pytest -q              # 30 tests
+.venv/bin/python -m charon.experiments     # ~22 s; writes figures/ and results/
 ```
 
 To add a transform, define `T`, `dT` and `inverse` in [charon/transforms.py](charon/transforms.py)

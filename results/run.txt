@@ -78,3 +78,13 @@ True w: 5 nonzeros of 200, 40 equations, L1 norm 7.81.
 
 T(w) = c^2 w under Adam: 51/51 learning rates in [0.0001, 10] converge (gradient descent needs lr < 7.3e-36).
 
+## E8. Three features on scales 1, 10, 100 (condition number ~1e4), 20000 step budget
+
+cond(S) = 1.01e+04. Each cell: fewest steps over 91 learning rates.
+
+| true weights | identity | w / sd(x_i) | w^2 | w^3 | exp(w) | c*tanh(w/c), c=5 |
+|---|---|---|---|---|---|---|
+| big weight on the small feature (3, 2, 0.5) | none | 4 | 8843 | 7580 | 3180 | none |
+| big weight on the big feature (0.5, 2, 3) | 17714 | 6 | none | none | none | 715 |
+| equal contributions (3, 0.3, 0.03) | none | 5 | 2217 | 601 | 5944 | none |
+

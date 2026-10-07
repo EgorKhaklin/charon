@@ -86,3 +86,16 @@ def test_adam_removes_gradient_scale_but_not_parameter_scale():
               adam=(b1, b2, eps * c**2))
     b = train(x, y, IDENTITY, lr=1e-3 * c**2, steps=300, w0=0.5, lr_b=1.0, adam=ADAM)
     np.testing.assert_allclose(a.v[:, 0], b.v[:, 0], rtol=1e-9)
+
+
+@pytest.mark.parametrize("tf", DEFAULT, ids=lambda t: t.name)
+def test_vector_trainer_matches_scalar_in_one_dimension(tf):
+    """With one centred feature and b at its optimum, both trainers take the same steps."""
+    from charon.core import steps_to_fit_vec
+
+    xc, yc = x - x.mean(), y - y.mean()
+    S = np.array([[np.mean(xc * xc)]])
+    lrs = np.logspace(-4, -1, 7)
+    vec = steps_to_fit_vec(S, np.array([v_star]), L_star, tf, lrs, [0.5], steps=3000)
+    sca = steps_to(train(x, y, tf, lr=lrs, steps=3000, w0=0.5, b0=b_star, lr_b=1.0), L_star)
+    np.testing.assert_array_equal(vec, sca)

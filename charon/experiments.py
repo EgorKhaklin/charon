@@ -12,8 +12,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
-from .core import ADAM, classify, curvature_limit, loss, make_data, ols, steps_to, train  # noqa: E402
-from .transforms import C_LIGHT, DEFAULT, IDENTITY, mass_energy  # noqa: E402
+from .core import (ADAM, classify, curvature_limit, loss, make_data, ols, steps_to,
+                   steps_to_fit_vec, train)  # noqa: E402
+from .transforms import C_LIGHT, DEFAULT, IDENTITY, Transform, mass_energy  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 FIG, RES = ROOT / "figures", ROOT / "results"
@@ -280,6 +281,38 @@ def e7_adam(x, y, v_star, L_star, best_gd):
     return md
 
 
+def e8_conditioning():
+    print("## E8. Three features on scales 1, 10, 100 (condition number ~1e4), 20000 step budget\n")
+    rng = np.random.default_rng(1)
+    n, scales = 200, np.array([1.0, 10.0, 100.0])
+    X = rng.normal(size=(n, 3)) * scales
+    X -= X.mean(axis=0)
+    noise = rng.normal(0, 2, n)
+    S = X.T @ X / n
+    s = 1.0 / np.sqrt(np.diag(S))
+    rescale = Transform("w / sd(x_i)", lambda w: w * s, lambda w: np.broadcast_to(s, w.shape),
+                        lambda v: v / s, "a fixed per-feature rescale: standardizing x")
+    tfs = (IDENTITY, rescale) + DEFAULT[1:]
+    lrs = np.logspace(-8, 1, 91)
+    cases = {"big weight on the small feature (3, 2, 0.5)": [3.0, 2.0, 0.5],
+             "big weight on the big feature (0.5, 2, 3)": [0.5, 2.0, 3.0],
+             "equal contributions (3, 0.3, 0.03)": [3.0, 0.3, 0.03]}
+    rows = []
+    for label, w_true in cases.items():
+        y = X @ np.array(w_true) + noise
+        y -= y.mean()
+        v_s = np.linalg.solve(S, X.T @ y / n)
+        L_s = 0.5 * np.mean((X @ v_s - y) ** 2)
+        row = [label]
+        for tf in tfs:
+            w0 = 0.5 / s if tf is rescale else np.full(3, 0.5)  # same starting T(w) for all
+            hit = steps_to_fit_vec(S, v_s, L_s, tf, lrs, w0, steps=20000, rtol=RTOL)
+            row.append(int(hit[hit >= 0].min()) if (hit >= 0).any() else "none")
+        rows.append(row)
+    print(f"cond(S) = {np.linalg.cond(S):.3g}. Each cell: fewest steps over 91 learning rates.\n")
+    return table(["true weights"] + [t.name for t in tfs], rows)
+
+
 def main():
     FIG.mkdir(exist_ok=True)
     RES.mkdir(exist_ok=True)
@@ -298,6 +331,7 @@ def main():
     out["e5"], out["e5_limit"] = e5_mass_energy(x, y, v_star, L_star)
     out["e6"] = e6_sparse()
     out["e7"] = e7_adam(x, y, v_star, L_star, best)
+    out["e8"] = e8_conditioning()
     (RES / "summary.json").write_text(json.dumps(out, indent=2, default=float) + "\n")
 
 

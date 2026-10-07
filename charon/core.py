@@ -127,3 +127,28 @@ def curvature_limit(x, tf: Transform, v_star):
     if w_star is None:
         return np.nan
     return 2.0 / (float(tf.dT(np.asarray(w_star))) ** 2 * np.mean(x**2))
+
+
+def steps_to_fit_vec(S, v_star, L_star, tf: Transform, lr, w0, steps=20000, rtol=1e-6):
+    """Steps for GD on w in R^d to reach L* (1 + rtol), batched over lr; -1 if never.
+
+    The model is y_hat = X T(w) with centred data, so the loss is the same
+    quadratic as in train(), now with S = X^T X / N:
+
+        L = L* + (1/2) d^T S d,   d = T(w) - v*,   dL/dw = (S d) * T'(w)
+
+    T acts coordinate by coordinate. w0 has shape (d,) or (B, d).
+    """
+    lr = np.atleast_1d(np.asarray(lr, float))
+    W = np.broadcast_to(np.asarray(w0, float), (lr.size, len(v_star))).copy()
+    hit = np.full(lr.size, -1)
+    with np.errstate(over="ignore", invalid="ignore"):
+        for t in range(steps):
+            D = tf.T(W) - v_star
+            G = D @ S
+            L = L_star + 0.5 * np.sum(D * G, axis=1)
+            hit = np.where((hit < 0) & (L <= L_star * (1 + rtol)), t, hit)
+            if (hit >= 0).all():
+                break
+            W = W - lr[:, None] * G * tf.dT(W)
+    return hit
