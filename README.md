@@ -27,8 +27,8 @@ Below, a **wormhole** is any reparameterization `T`: the optimizer moves `w`, th
   training (E11).
 - That sets a ceiling. At finding sparse answers, such a wormhole can at best tie L1
   minimization (E12).
-- **Pandora** gets past the ceiling with many small randomized solves and a self-checking exact
-  fit. At 11 nonzeros it recovers 72 of 100 signals, where the strongest baseline tested gets
+- **Pandora** ([its own repo](https://github.com/EgorKhaklin/pandora)) gets past the ceiling with
+  many small randomized solves and a self-checking exact fit. At 11 nonzeros it recovers 72 of 100 signals, where the strongest baseline tested gets
   50 and L1 gets 31 (E17). Its noisy version, Atlas, holds up under measurement noise (E18).
 - In quantum state tomography, the wormhole `ρ = AA†` prefers purer states, which no convex,
   basis-independent penalty can do (E13, E14).
@@ -352,6 +352,10 @@ never goes past L1: when L1 fails, the true support isn't among the top-ranked c
 any of these rankings, so there is nothing to count. Beyond L1, the problem is the ranking.
 
 ## E17. Pandora: past the ceiling
+
+Pandora now has its own repository, with a phase diagram and four matrix ensembles:
+**[EgorKhaklin/pandora](https://github.com/EgorKhaklin/pandora)**. The numbers below are the
+original experiment.
 
 E16's lesson was that past L1, the problem is the ranking. **Pandora** opens many small
 vessels. Each is basis pursuit on 60 columns: the 20 best-scored so far and 40 at random.
