@@ -163,6 +163,52 @@ win when the large-scale features carry small weights, and lose badly when they 
 transform helps only when its `T'(w)²` happens to track the inverse curvature. The data decide
 the curvature. The transform doesn't know the data.
 
+## Wormholes within wormholes
+
+`python -m charon.frontier` (about 3 minutes; output in [results/frontier.txt](results/frontier.txt))
+pushes the idea further on E6's sparse problem. The code is in
+[charon/wormholes.py](charon/wormholes.py).
+
+**E9. Nesting.** A wormhole inside a wormhole is the composed transform
+`T(w) = outer(inner(w))`. By the chain rule its step factor is the product
+`outer'(inner(w))² · inner'(w)²`, so nesting multiplies preconditioners. Nesting `w|w|`
+k times gives the signed power `p = 2^k`, whose step in terms of the effective weight is
+`lr · p² · |v|^(2 − 2/p)`. Each level makes small weights slower and big weights relatively
+faster. Every run takes its step as a fraction of its own stability limit, so a transform is
+judged on the answer it finds, not on surviving one shared learning rate. 40 test problems,
+with learning rate and starting size picked on 8 other problems:
+
+| transform | median error vs true w | median residual after 6000 steps |
+|---|---|---|
+| `w` (no wormhole) | 0.901 | 2e-17 |
+| `w|w|` | 0.639 | 3e-04 |
+| `w|w| ∘ w|w|` (2 deep) | **0.104** | 2e-02 |
+| `w|w| ∘ w|w| ∘ w|w|` (3 deep) | 0.950 | 6e-01 |
+| `3·tanh(w/3) ∘ w|w|` | 0.645 | 7e-05 |
+| `sinh ∘ w|w|` | 0.621 | 5e-03 |
+| `w|w| ∘ sinh` | 0.609 | 6e-03 |
+
+Two levels deep finds the sparse answer six times more accurately than one level, but its
+last digits of fit come slowly (residual 2e-2 after 6000 steps). Three levels is too many.
+The steps near zero shrink so hard that nothing grows, and the run never fits the data.
+Wrapping `w|w|` in a bounded or exponential wormhole changes nothing measurable. The
+improvement from depth matches what is known for deep diagonal linear networks
+(Woodworth et al. 2020). The failure at depth 3 is the finite-step cost that theory leaves
+out.
+
+![nested](figures/nested.png)
+
+**E10. Wormhole jumps (falsified).** For `w = u² − v²`, gradient descent conserves `u·v` in
+every coordinate, and a small `u·v` is what makes the answer sparse. A jump resets `u·v` to
+a tiny value while keeping `u² − v²` exactly, so the model's function doesn't change. The hope
+was to get the sparse answer of a tiny start without its slow plateau. It doesn't work:
+jumping every 200 steps from a start of 0.1 lands within 0.03 of the plain 0.1 run on all 3
+problems (error 0.40 to 0.65, against 0.002 to 0.03 for a true tiny start). The dense fit
+forms in the first few hundred steps, and a jump that keeps the function also keeps that fit.
+
+Learning the wormhole instead of picking it worked better. That experiment needs torch and
+lives in [styx](https://github.com/EgorKhaklin/styx).
+
 ## So which of the four outcomes?
 
 The original sketch listed four possible conclusions. For one-dimensional linear regression
@@ -186,8 +232,9 @@ Woodworth et al., "Kernel and Rich Regimes in Overparametrized Models" (COLT 202
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -e '.[test]'
-.venv/bin/python -m pytest -q              # 30 tests
+.venv/bin/python -m pytest -q              # 45 tests
 .venv/bin/python -m charon.experiments     # ~22 s; writes figures/ and results/
+.venv/bin/python -m charon.frontier        # ~3 min; E9 and E10
 ```
 
 To add a transform, define `T`, `dT` and `inverse` in [charon/transforms.py](charon/transforms.py)
