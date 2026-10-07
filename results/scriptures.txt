@@ -1,0 +1,18 @@
+## E15. Schedules from scripture: time-varying, coupled and restarted wormholes vs L1
+
+| nonzeros | schedule | exact recoveries | beyond L1 | L1 only |
+|---|---|---|---|---|
+| 8 | L1 minimization | 53/60 |  |  |
+| 8 | log wormhole, fixed | 39/60 | 0 | 14 |
+| 8 | Ezekiel 37: the breath (floor) withdrawn over training | 15/60 | 0 | 38 |
+| 8 | Jacob's ladder: tau climbs up and down three times | 20/60 | 0 | 33 |
+| 8 | Solomon: speed set by size relative to the largest (coupled) | 0/60 | 0 | 53 |
+| 8 | Revelation 21: a new, sharper creation started from the end | 41/60 | 0 | 12 |
+| 11 | L1 minimization | 18/60 |  |  |
+| 11 | log wormhole, fixed | 7/60 | 0 | 11 |
+| 11 | Ezekiel 37: the breath (floor) withdrawn over training | 1/60 | 0 | 17 |
+| 11 | Jacob's ladder: tau climbs up and down three times | 3/60 | 0 | 15 |
+| 11 | Solomon: speed set by size relative to the largest (coupled) | 0/60 | 0 | 18 |
+| 11 | Revelation 21: a new, sharper creation started from the end | 8/60 | 0 | 10 |
+
+EXIT 0

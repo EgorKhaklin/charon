@@ -248,6 +248,70 @@ predicts: with `m(0) > 0` a wormhole only approaches sparsity. The theory also n
 out: a metric that changes during training, coupled coordinates, a start away from zero,
 large noisy steps, or a nonlinear model.
 
+## Quantum wormholes
+
+Everything above commutes: each coordinate has its own wormhole. In quantum mechanics the
+unknown is a density matrix `ρ`, and a wormhole is a matrix map. The task is quantum state
+tomography. 4 qubits, an unknown state, and only `m` of its 255 Pauli expectation values
+measured. `ρ = AA†` (Born) is the matrix version of `u²`. `ρ = exp(H)/tr` (Gibbs) is mirror
+descent with the von Neumann entropy. Code in [charon/quantum.py](charon/quantum.py), output in
+[results/quantum.txt](results/quantum.txt).
+
+**E13. With too few measurements, the wormhole picks the state.** Every estimator fits the
+data exactly. Fidelity with the true pure state, 10 states per row:
+
+| measurements | least squares | positivity (convex) | Born, start 0.001 | Born, start 1 | Gibbs (max entropy) |
+|---|---|---|---|---|---|
+| 24 | 0.156 | 0.217 | **0.433** | 0.262 | 0.261 |
+| 48 | 0.229 | 0.654 | **0.860** | 0.681 | 0.669 |
+| 96 | 0.413 | 1.000 | 0.998 | 0.993 | 0.998 |
+
+At 96 measurements positivity alone pins the state, and every positive estimator finds it.
+This is known (Kalev, Kosut and Deutsch, 2015). Below that, the Born wormhole from a small
+start lands closest to the truth, by a factor of 2 at 24 measurements. Its estimates are purer
+(purity 0.78 against 0.57 at 48). THEORY.md, Theorem 3, says why no convex method can do this.
+Any convex penalty that ignores the basis prefers the maximally mixed state. A pull toward
+purity has to come from the non-commuting dynamics of `AA†`.
+
+**E14. With shot noise, the pull toward purity is a prior.** Each Pauli is measured 100 or 1000
+times. Model selection uses 20% of the measurements held out, never the truth. 8 states per row:
+
+| true state | shots | measurements | positivity (convex) | rank 1 of convex (told it is pure) | Born wormhole |
+|---|---|---|---|---|---|
+| pure | 100 | 96 | 0.765 | 0.951 | **0.876** |
+| pure | 100 | 160 | 0.835 | 0.972 | **0.950** |
+| pure | 1000 | 160 | 0.953 | 0.997 | **0.989** |
+| rank 4 | 100 | 96 | **0.469** | 0.265 | 0.388 |
+| rank 4 | 100 | 160 | **0.639** | 0.331 | 0.582 |
+| rank 4 | 1000 | 160 | 0.829 | 0.401 | **0.844** |
+
+On pure states the Born wormhole beats the convex estimator in every cell, without being
+told the rank. Telling an estimator the state is pure does better still. On mixed states that
+told-pure estimator collapses (0.27 to 0.40). The wormhole bends instead of breaking. It loses
+to the convex estimator under heavy noise and edges ahead at 1000 shots. Projected least
+squares trails both everywhere. The wormhole's bias is an estimation principle, a soft
+preference for purity, and like any prior it costs something when it is wrong.
+
+## E15. Schedules from scripture
+
+Theorem 2's assumptions are the ways past the ceiling: a metric that changes with time,
+coordinates that interact, a start away from zero. Each schedule below takes one of those routes
+and borrows its shape from a story. Sparse recovery as in E12, 60 test problems, settings picked
+on 12 others ([results/scriptures.txt](results/scriptures.txt)):
+
+| schedule | route | exact at 8 nonzeros | exact at 11 | beyond L1 |
+|---|---|---|---|---|
+| L1 minimization | (reference) | 53/60 | 18/60 | |
+| log wormhole, fixed | none | 39 | 7 | 0 |
+| Ezekiel 37: the breath (the floor that lets weights leave zero) withdrawn during training | time | 15 | 1 | 0 |
+| Jacob's ladder: `τ` climbs up and down three times | time | 20 | 3 | 0 |
+| Solomon: each weight's speed set by its size relative to the largest | coupling | 0 | 0 | 0 |
+| Revelation 21: a second, sharper creation started from where the first ended | start | **41** | **8** | 0 |
+
+Only Revelation improves on the fixed wormhole, and none recovers a single vector L1 misses.
+With 40 equations, an exhaustive search would recover any signal with up to 19 nonzeros, so the
+room above L1 is large. The routes the theory opens are real; no schedule tried here finds them.
+
 Learning the wormhole instead of picking it worked better. That experiment needs torch and
 lives in [styx](https://github.com/EgorKhaklin/styx).
 
@@ -274,9 +338,9 @@ Woodworth et al., "Kernel and Rich Regimes in Overparametrized Models" (COLT 202
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -e '.[test]'
-.venv/bin/python -m pytest -q              # 53 tests
+.venv/bin/python -m pytest -q              # 60 tests
 .venv/bin/python -m charon.experiments     # ~22 s; writes figures/ and results/
-.venv/bin/python -m charon.frontier        # ~10 min; E9 to E12
+.venv/bin/python -m charon.frontier        # ~25 min; E9 to E15 (or name them: e13 e14)
 ```
 
 To add a transform, define `T`, `dT` and `inverse` in [charon/transforms.py](charon/transforms.py)

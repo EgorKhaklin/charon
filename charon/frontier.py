@@ -1,7 +1,8 @@
-"""Wormholes within wormholes (E9), wormhole jumps (E10), where a wormhole ends (E11)
-and the ceiling on what it can recover (E12).
+"""Wormholes within wormholes (E9), wormhole jumps (E10), where a wormhole ends (E11),
+the ceiling on what it can recover (E12), quantum wormholes (E13, E14), and schedules
+from scripture (E15).
 
-    python -m charon.frontier [e9 e10 e11 e12]     # about 10 minutes for all four
+    python -m charon.frontier [e9 ... e15]     # about 25 minutes for all seven
 """
 
 import itertools
@@ -16,6 +17,7 @@ import numpy as np  # noqa: E402
 
 from .experiments import COLORS, FIG, INK, INK2, RES, table  # noqa: E402
 from .destination import basis_pursuit, descend, destination, hadamard, log_wormhole  # noqa: E402
+from . import quantum as Q  # noqa: E402
 from .transforms import IDENTITY  # noqa: E402
 from .wormholes import (SIGNED_SQUARE, SINH, compose, fit_hadamard, fit_transform, nest,  # noqa: E402
                         sparse_problem, tanh_cap)
@@ -144,13 +146,118 @@ def e12_ceiling():
                   "L1 exact", "wormhole only", "L1 only"], rows)
 
 
+def e13_quantum_noiseless():
+    print("## E13. Quantum wormholes: which state comes out when many fit (4 qubits, no noise)\n")
+    P = Q.paulis(4)
+    rows = []
+    for m in (24, 48, 96):
+        res = {}
+        for trial in range(10):
+            rng = np.random.default_rng(1000 * m + trial)
+            idx = np.concatenate([[0], 1 + rng.choice(255, m - 1, replace=False)])
+            rho = Q.random_state(16, 1, rng)
+            b = Q.measure(P[idx], rho)
+            ests = {"least squares (min norm)": Q.least_squares(P[idx], b),
+                    "positivity, convex": Q.psd_least_squares(P[idx], b),
+                    "Born rho = AA†, start 0.001": Q.born(P[idx], b, 1e-3, rng),
+                    "Born rho = AA†, start 1": Q.born(P[idx], b, 1.0, rng),
+                    "Gibbs rho = exp(H)": Q.gibbs(P[idx], b)}
+            for k, r in ests.items():
+                res.setdefault(k, []).append((Q.fidelity(r, rho), Q.purity(r)))
+        for k, v in res.items():
+            v = np.array(v)
+            rows.append([m, k, f"{v[:, 0].mean():.3f}", f"{(v[:, 0] > 0.99).sum()}/10",
+                         f"{v[:, 1].mean():.2f}"])
+    return table(["Pauli measurements (of 255)", "estimator", "fidelity with the true pure state",
+                  "fidelity > 0.99", "purity of the estimate"], rows)
+
+
+def e14_quantum_noisy():
+    print("## E14. Quantum wormholes under shot noise: pure and mixed states (4 qubits)\n")
+    P = Q.paulis(4)
+    rows = []
+    for rank in (1, 4):
+        for n_shots in (100, 1000):
+            for m in (96, 160):
+                res = {}
+                for trial in range(8):
+                    rng = np.random.default_rng(11 * m + trial + n_shots + 1000 * rank)
+                    idx = np.concatenate([[0], 1 + rng.choice(255, m - 1, replace=False)])
+                    rho = Q.random_state(16, rank, rng)
+                    b = Q.shots(P[idx], rho, n_shots, rng)
+                    hold = np.zeros(m, bool)
+                    hold[1 + rng.choice(m - 1, (m - 1) // 5, replace=False)] = True
+                    Pt, bt = P[idx][~hold], b[~hold]
+                    full = Q.psd_least_squares(Pt, bt)
+                    v = np.linalg.eigh(full)[1][:, -1:]
+                    ests = {"projected least squares": Q.projected_least_squares(Pt, bt),
+                            "positivity, convex": full,
+                            "rank 1 of the convex fit (told it is pure)": v @ v.conj().T,
+                            "Born, start 0.001, held-out stop":
+                                Q.born_held_out(Pt, bt, P[idx][hold], b[hold], 1e-3, rng)}
+                    for k, r in ests.items():
+                        res.setdefault(k, []).append(Q.fidelity(r, rho))
+                rows.append([rank, n_shots, m] + [f"{np.mean(v):.3f}" for v in res.values()])
+    return table(["true rank", "shots per Pauli", "measurements", "projected least squares",
+                  "positivity, convex", "rank 1 of convex (told pure)",
+                  "Born wormhole, small start"], rows)
+
+
+def e15_scriptures():
+    print("## E15. Schedules from scripture: time-varying, coupled and restarted wormholes vs L1\n")
+    from .destination import basis_pursuit as bp
+
+    def run(X, y, metric, steps=3000, w0=None):
+        n = X.shape[0]
+        lam = np.linalg.eigvalsh(X.T @ X / n).max()
+        w = np.zeros(X.shape[1]) if w0 is None else w0.copy()
+        for t in range(steps):
+            w = w - (0.25 / lam) * metric(w, t / steps) * (X.T @ (X @ w - y) / n)
+        return w
+
+    def gate(a, f, tau):
+        return np.minimum(f * np.sqrt(a + 1e-12) + 4 * a * a / (a * a + tau * tau), 4.0)
+
+    fams = {
+        "log wormhole, fixed": (lambda f, tau: lambda X, y: run(
+            X, y, lambda w, t: gate(np.abs(w), f, tau)),
+            [(f, tau) for f in (1e-4, 1e-3) for tau in (1e-3, 1e-2)]),
+        "Ezekiel 37: the breath (floor) withdrawn over training": (lambda f0, tau: lambda X, y: run(
+            X, y, lambda w, t: gate(np.abs(w), f0 * 1e-4**t, tau)),
+            [(f0, tau) for f0 in (1e-2, 1e-1) for tau in (1e-3, 1e-2)]),
+        "Jacob's ladder: tau climbs up and down three times": (lambda f, tm: lambda X, y: run(
+            X, y, lambda w, t: gate(np.abs(w), f, 1e-3 * (tm / 1e-3) ** (0.5 - 0.5 * np.cos(6 * np.pi * t))
+                                    * (1 - t) + 1e-3 * t)),
+            [(f, tm) for f in (1e-4, 1e-3) for tm in (1e-1, 1.0)]),
+        "Solomon: speed set by size relative to the largest (coupled)": (lambda f, tau: lambda X, y: run(
+            X, y, lambda w, t: gate(np.abs(w) / (np.abs(w).max() + 1e-12), f, tau)),
+            [(f, tau) for f in (1e-4, 1e-3) for tau in (1e-3, 1e-2, 3e-2)]),
+        "Revelation 21: a new, sharper creation started from the end": (lambda f, tau: lambda X, y: run(
+            X, y, lambda w, t: gate(np.abs(w), f, tau),
+            w0=run(X, y, lambda w, t: gate(np.abs(w), 1e-4, 1e-3))),
+            [(1e-4, 1e-4), (1e-5, 1e-4), (1e-4, 3e-4)]),
+    }
+    rows = []
+    for k in (8, 11):
+        tune = [sparse_problem(s, k=k) for s in range(300, 312)]
+        test = [sparse_problem(s, k=k) for s in range(400, 460)]
+        l1 = np.array([rel_err(bp(X, y), wt) < 1e-2 for X, y, wt in test])
+        rows.append([k, "L1 minimization", f"{l1.sum()}/60", "", ""])
+        for name, (make, grid) in fams.items():
+            p = min(grid, key=lambda p: np.median([rel_err(make(*p)(X, y), wt) for X, y, wt in tune]))
+            ok = np.array([rel_err(make(*p)(X, y), wt) < 1e-2 for X, y, wt in test])
+            rows.append([k, name, f"{ok.sum()}/60", f"{(ok & ~l1).sum()}", f"{(l1 & ~ok).sum()}"])
+    return table(["nonzeros", "schedule", "exact recoveries", "beyond L1", "L1 only"], rows)
+
+
 def main():
     import sys
     FIG.mkdir(exist_ok=True)
     RES.mkdir(exist_ok=True)
-    want = set(sys.argv[1:]) or {"e9", "e10", "e11", "e12"}
-    runs = {"e9": e9_nested, "e10": e10_jumps, "e11": e11_destination, "e12": e12_ceiling}
-    md = [runs[k]() for k in ("e9", "e10", "e11", "e12") if k in want]
+    runs = {"e9": e9_nested, "e10": e10_jumps, "e11": e11_destination, "e12": e12_ceiling,
+            "e13": e13_quantum_noiseless, "e14": e14_quantum_noisy, "e15": e15_scriptures}
+    want = set(sys.argv[1:]) or set(runs)
+    md = [f() for k, f in runs.items() if k in want]
     if want == set(runs):
         Path(RES / "frontier.md").write_text("\n\n".join(md) + "\n")
 

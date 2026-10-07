@@ -109,3 +109,33 @@ The theorem leaves every one of its assumptions open, and each is a way around t
 On linear problems, an elementwise wormhole that stays fixed during training is a separable
 convex penalty in disguise. Learning one, as styx does, learns that penalty. Theorem 2 says that
 such a penalty can at best tie L1, uniformly over sizes.
+
+## The quantum case: non-commuting wormholes
+
+Replace the vector by a density matrix `ρ`: Hermitian, positive semidefinite, trace 1. The
+data are Pauli expectation values `tr(P_k ρ)`, fewer of them than the `d² − 1` unknowns. Two
+matrix wormholes:
+
+- **Born**, `ρ = AA†` with `A` a full `d × d` matrix, the matrix version of `u²`. Gradient
+  descent on `A` does not commute with `ρ`, so it is not a mirror flow in general (Li, Wang,
+  Lee and Arora, 2022, show that some flows of `UUᵀ` are no mirror flow at all). From a small
+  start it builds `ρ` greedily one rank at a time (Li, Luo and Lyu, ICLR 2021).
+- **Gibbs**, `ρ = exp(H)/tr exp(H)`. Gradient steps on `H` are mirror descent with the von
+  Neumann entropy, matrix exponentiated gradient (Tsuda, Rätsch and Warmuth, 2005). From
+  `H = 0` this is the maximum-entropy principle.
+
+## Theorem 3: convex, basis-free penalties prefer the most mixed state
+
+*Let `f` be convex on density matrices and unitarily invariant (`f(UρU†) = f(ρ)` for every
+unitary `U`). Then `f(I/d) ≤ f(ρ)` for every state `ρ`.*
+
+*Proof.* Averaging `UρU†` over the Haar measure gives `I/d` (the twirl). By Jensen,
+`f(I/d) = f(∫UρU†dU) ≤ ∫f(UρU†)dU = f(ρ)`. ∎
+
+Among the states that fit the data, a convex penalty that ignores the basis can therefore only
+pull toward the mixed end. Von Neumann entropy, the nuclear norm (always 1 here), the
+Frobenius norm and every Schatten norm are all of this kind. None of them can prefer a
+purer state. The commuting theory makes every fixed elementwise wormhole a convex penalty
+(Theorem 1), so a preference for purity has to come from somewhere else. The Born wormhole
+supplies it through non-commuting, non-convex dynamics. E13 and E14 measure what that
+preference buys and what it costs.
