@@ -1,8 +1,8 @@
 """Wormholes within wormholes (E9), wormhole jumps (E10), where a wormhole ends (E11),
 the ceiling on what it can recover (E12), quantum wormholes (E13, E14), and schedules
-from scripture (E15).
+from scripture (E15, E16).
 
-    python -m charon.frontier [e9 ... e15]     # about 25 minutes for all seven
+    python -m charon.frontier [e9 ... e16]     # about 25 minutes for all seven
 """
 
 import itertools
@@ -250,12 +250,67 @@ def e15_scriptures():
     return table(["nonzeros", "schedule", "exact recoveries", "beyond L1", "L1 only"], rows)
 
 
+def e16_count_the_number():
+    print("## E16. Revelation 13:18, 'count the number': certified support counting vs L1\n")
+    from .destination import basis_pursuit as bp
+
+    def gate(a, f, tau):
+        return np.minimum(f * np.sqrt(a + 1e-12) + 4 * a * a / (a * a + tau * tau), 4.0)
+
+    def run(X, y, f, tau, steps, w0=None, mask=None):
+        n = X.shape[0]
+        lam = np.linalg.eigvalsh(X.T @ X / n).max()
+        w = np.zeros(X.shape[1]) if w0 is None else w0.copy()
+        for _ in range(steps):
+            step = (0.25 / lam) * gate(np.abs(w), f, tau) * (X.T @ (X @ w - y) / n)
+            w = w - (step if mask is None else step * mask)
+        return w
+
+    def count(X, y, w):
+        """Smallest s whose top-s coordinates by |w| fit y exactly. For s < n/2 such a fit is
+        generically unique, so a hit certifies itself."""
+        order = np.argsort(-np.abs(w))
+        for s in range(1, X.shape[0] // 2):
+            S = order[:s]
+            c, *_ = np.linalg.lstsq(X[:, S], y, rcond=None)
+            if np.linalg.norm(X[:, S] @ c - y) < 1e-9 * np.linalg.norm(y):
+                out = np.zeros(X.shape[1])
+                out[S] = c
+                return out, True
+        return w, False
+
+    def beast(X, y):
+        """Three rounds, each sixfold sharper: wormhole, count, mark the top n-1, restart."""
+        f, tau, w, mask = 1e-4, 1e-3, None, None
+        for _ in range(3):
+            w = run(X, y, f, tau, 1998, w0=w, mask=mask)
+            cand, ok = count(X, y, w)
+            if ok:
+                return cand
+            mask = (np.abs(w) >= np.sort(np.abs(w))[-(X.shape[0] - 1)]).astype(float)
+            f, tau = f / 6, tau / 6
+        return w
+
+    rows = []
+    for k in (8, 11, 14, 17, 19):
+        hits = np.zeros(4, int)
+        for X, y, wt in (sparse_problem(s, k=k) for s in range(400, 460)):
+            w1 = bp(X, y)
+            ww = run(X, y, 1e-4, 1e-3, 3000)
+            ests = [w1, count(X, y, w1)[0], count(X, y, ww)[0], beast(X, y)]
+            hits += [rel_err(e, wt) < 1e-2 for e in ests]
+        rows.append([k] + [f"{h}/60" for h in hits])
+    return table(["nonzeros", "L1", "L1 ranking, then count", "wormhole ranking, then count",
+                  "666: three marked rounds"], rows)
+
+
 def main():
     import sys
     FIG.mkdir(exist_ok=True)
     RES.mkdir(exist_ok=True)
     runs = {"e9": e9_nested, "e10": e10_jumps, "e11": e11_destination, "e12": e12_ceiling,
-            "e13": e13_quantum_noiseless, "e14": e14_quantum_noisy, "e15": e15_scriptures}
+            "e13": e13_quantum_noiseless, "e14": e14_quantum_noisy, "e15": e15_scriptures,
+            "e16": e16_count_the_number}
     want = set(sys.argv[1:]) or set(runs)
     md = [f() for k, f in runs.items() if k in want]
     if want == set(runs):

@@ -1,0 +1,11 @@
+## E16. Revelation 13:18, 'count the number': certified support counting vs L1
+
+| nonzeros | L1 | L1 ranking, then count | wormhole ranking, then count | 666: three marked rounds |
+|---|---|---|---|---|
+| 8 | 53/60 | 53/60 | 50/60 | 52/60 |
+| 11 | 18/60 | 18/60 | 17/60 | 18/60 |
+| 14 | 1/60 | 1/60 | 1/60 | 1/60 |
+| 17 | 0/60 | 0/60 | 0/60 | 0/60 |
+| 19 | 0/60 | 0/60 | 0/60 | 0/60 |
+
+EXIT 0

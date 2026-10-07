@@ -312,6 +312,24 @@ Only Revelation improves on the fixed wormhole, and none recovers a single vecto
 With 40 equations, an exhaustive search would recover any signal with up to 19 nonzeros, so the
 room above L1 is large. The routes the theory opens are real; no schedule tried here finds them.
 
+**E16. "Count the number" (Revelation 13:18).** L1 never asks how many nonzeros there are.
+Counting them works like this. Rank the coordinates, then take the smallest `s` whose top `s`
+fit the equations exactly. With 40 equations, an exact fit on fewer than 20 coordinates is
+generically unique, so a hit certifies itself. "666" runs the wormhole, counts, marks the top
+39 coordinates (only marked ones may move) and restarts, three times, each round sixfold
+sharper ([results/beast.txt](results/beast.txt)):
+
+| nonzeros | L1 | L1 ranking, then count | wormhole ranking, then count | 666 |
+|---|---|---|---|---|
+| 8 | 53/60 | 53 | 50 | 52 |
+| 11 | 18 | 18 | 17 | 18 |
+| 14 | 1 | 1 | 1 | 1 |
+| 17, 19 | 0 | 0 | 0 | 0 |
+
+Counting lifts the wormhole from 39 to 50 and the three rounds to 52, nearly level with L1. It
+never goes past L1: when L1 fails, the true support isn't among the top-ranked coordinates of
+any of these rankings, so there is nothing to count. Beyond L1, the problem is the ranking.
+
 Learning the wormhole instead of picking it worked better. That experiment needs torch and
 lives in [styx](https://github.com/EgorKhaklin/styx).
 
@@ -340,7 +358,7 @@ Woodworth et al., "Kernel and Rich Regimes in Overparametrized Models" (COLT 202
 python -m venv .venv && .venv/bin/pip install -e '.[test]'
 .venv/bin/python -m pytest -q              # 60 tests
 .venv/bin/python -m charon.experiments     # ~22 s; writes figures/ and results/
-.venv/bin/python -m charon.frontier        # ~25 min; E9 to E15 (or name them: e13 e14)
+.venv/bin/python -m charon.frontier        # ~25 min; E9 to E16 (or name them: e13 e14)
 ```
 
 To add a transform, define `T`, `dT` and `inverse` in [charon/transforms.py](charon/transforms.py)
