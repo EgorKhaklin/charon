@@ -90,7 +90,11 @@ def test_adam_removes_gradient_scale_but_not_parameter_scale():
 
 @pytest.mark.parametrize("tf", DEFAULT, ids=lambda t: t.name)
 def test_vector_trainer_matches_scalar_in_one_dimension(tf):
-    """With one centred feature and b at its optimum, both trainers take the same steps."""
+    """With one centred feature and b at its optimum, both trainers take the same steps.
+
+    The two compute the loss along different float paths, so a run landing exactly on
+    the tolerance may cross it one step apart on another platform (seen on CI).
+    """
     from charon.core import steps_to_fit_vec
 
     xc, yc = x - x.mean(), y - y.mean()
@@ -98,4 +102,5 @@ def test_vector_trainer_matches_scalar_in_one_dimension(tf):
     lrs = np.logspace(-4, -1, 7)
     vec = steps_to_fit_vec(S, np.array([v_star]), L_star, tf, lrs, [0.5], steps=3000)
     sca = steps_to(train(x, y, tf, lr=lrs, steps=3000, w0=0.5, b0=b_star, lr_b=1.0), L_star)
-    np.testing.assert_array_equal(vec, sca)
+    np.testing.assert_array_equal(vec < 0, sca < 0)
+    assert np.all(np.abs(vec - sca) <= 1)

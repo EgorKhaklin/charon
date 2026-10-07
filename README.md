@@ -168,9 +168,14 @@ the curvature. The transform doesn't know the data.
 The original sketch listed four possible conclusions. For one-dimensional linear regression
 the answer is **3 and 4**. The transform changes optimization but brings no overall
 advantage, and it behaves exactly like known techniques: a preconditioner, a positivity
-constraint (`exp`), a bounded weight (`tanh`), a squared factorization (`w²`). In the
-overparameterized case (E6), outcome 1 holds in a precise sense. The transform picks a better
-answer among many exact fits. It does not speed up the fit.
+constraint (`exp`), a bounded weight (`tanh`), a squared factorization (`w²`).
+
+Two cases stretch this, and both have known names. With many exact fits (E6), the transform
+picks which one you get, so outcome 1 holds for the answer but not the speed. With badly scaled
+features (E8), a transform speeds things up exactly when `T'(w)²` matches the inverse curvature.
+The one that always does is a fixed rescale by the feature's spread, which is input
+standardization. Adam (E7) removes the gradient-scale half of a transform's effect and leaves
+the parameter-scale half.
 
 Related work, for anyone going further: natural gradient (Amari, 1998) for transforms viewed as
 preconditioning; exponentiated gradient (Kivinen and Warmuth, 1997) for `exp`; weight
