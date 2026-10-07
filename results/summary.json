@@ -1,0 +1,21 @@
+{
+  "ols": {
+    "slope": 2.9580471632962757,
+    "intercept": 1.8994607770322847,
+    "loss": 1.1644638384754555
+  },
+  "e1": "| transform | minima in w (on [-4, 4]) | T'(0)=0 | what the range does |\n|---|---|---|---|\n| identity | +2.96 | no | ordinary regression; the baseline |\n| w^2 | -1.72, +1.72 | yes | range [0, inf); two minima at +-sqrt(v*), a saddle at w=0 |\n| w^3 | +1.44 | yes | full range, but T'(0)=0: the step size vanishes near zero |\n| exp(w) | +1.08 | no | range (0, inf); multiplicative updates, like exponentiated gradient |\n| c*tanh(w/c), c=5 | +3.40 | no | range (-c, c); a bounded weight, the relativistic speed limit |",
+  "e2": "| transform | best lr | steps at best lr | predicted max lr 2/(T'(w*)^2 E[x^2]) | largest lr that converged | lr window |\n|---|---|---|---|---|---|\n| identity | 0.032 | 4 | 0.0588 | 0.0501 | 794x |\n| w^2 | 0.0025 | 6 | 0.00497 | 0.00398 | 631x |\n| w^3 | 0.00079 | 11 | 0.00154 | 0.00126 | 501x |\n| exp(w) | 0.0032 | 6 | 0.00672 | 0.00631 | 794x |\n| c*tanh(w/c), c=5 | 0.063 | 8 | 0.139 | 0.126 | 1000x |",
+  "best_lr": {
+    "identity": 0.03162277660168379,
+    "w^2": 0.002511886431509582,
+    "w^3": 0.0007943282347242822,
+    "exp(w)": 0.0031622776601683794,
+    "c*tanh(w/c), c=5": 0.06309573444801943
+  },
+  "e3": "| true slope | transform | converged | diverged | stalled | unreachable |\n|---|---|---|---|---|---|\n| +2.96 | identity | 201 | 0 | 0 | 0 |\n| +2.96 | w^2 | 152 | 48 | 1 | 0 |\n| +2.96 | w^3 | 49 | 112 | 40 | 0 |\n| +2.96 | exp(w) | 149 | 0 | 52 | 0 |\n| +2.96 | c*tanh(w/c), c=5 | 201 | 0 | 0 | 0 |\n| -2.96 | identity | 201 | 0 | 0 | 0 |\n| -2.96 | w^2 | 0 | 82 | 0 | 119 |\n| -2.96 | w^3 | 49 | 112 | 40 | 0 |\n| -2.96 | exp(w) | 0 | 0 | 0 | 201 |\n| -2.96 | c*tanh(w/c), c=5 | 201 | 0 | 0 | 0 |",
+  "e4": "| noise sd | least-squares slope | identity | w^2 | w^3 | exp(w) | c*tanh(w/c), c=5 |\n|---|---|---|---|---|---|---|\n| 0.1 | 3.002 | 0 | 0 | 0 | 0 | 0 |\n| 1.0 | 3.018 | 0 | 0 | 0 | 0 | 0 |\n| 2.0 | 3.036 | 0 | 0 | 0 | 0 | 0 |\n| 5.0 | 3.090 | 0 | 0 | 0 | 0 | 0 |\n| 10.0 | 3.180 | 0 | 0 | 0 | 0 | 0 |",
+  "e5": "| lr | outcome |\n|---|---|\n| 0.01 | diverged |\n| 1e-06 | diverged |\n| 3.64e-36 | converged in 1 step |",
+  "e5_limit": 7.280852945131243e-36,
+  "e6": "| parameterization | train residual | error vs true w | support found | L1 norm |\n|---|---|---|---|---|\n| identity: w | 0.0e+00 | 0.913 | 2/5 | 16.24 |\n| w = u^2 - v^2, init 0.1 | 5.8e-15 | 0.649 | 3/5 | 11.84 |\n| w = u^2 - v^2, init 0.01 | 2.1e-12 | 0.288 | 5/5 | 8.79 |\n| w = u^2 - v^2, init 0.0001 | 5.7e-04 | 0.029 | 5/5 | 7.88 |"
+}
