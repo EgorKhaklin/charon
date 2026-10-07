@@ -222,17 +222,17 @@ def e15_schedules():
         "log wormhole, fixed": (lambda f, tau: lambda X, y: run(
             X, y, lambda w, t: gate(np.abs(w), f, tau)),
             [(f, tau) for f in (1e-4, 1e-3) for tau in (1e-3, 1e-2)]),
-        "floor decayed over training": (lambda f0, tau: lambda X, y: run(
+        "Lethe: the floor fades over training": (lambda f0, tau: lambda X, y: run(
             X, y, lambda w, t: gate(np.abs(w), f0 * 1e-4**t, tau)),
             [(f0, tau) for f0 in (1e-2, 1e-1) for tau in (1e-3, 1e-2)]),
-        "cyclic tau: up and down three times": (lambda f, tm: lambda X, y: run(
+        "Sisyphus: tau rolls up and back down three times": (lambda f, tm: lambda X, y: run(
             X, y, lambda w, t: gate(np.abs(w), f, 1e-3 * (tm / 1e-3) ** (0.5 - 0.5 * np.cos(6 * np.pi * t))
                                     * (1 - t) + 1e-3 * t)),
             [(f, tm) for f in (1e-4, 1e-3) for tm in (1e-1, 1.0)]),
-        "speed set by size relative to the largest (coupled)": (lambda f, tau: lambda X, y: run(
+        "Eris: speed set by size relative to the largest (coupled)": (lambda f, tau: lambda X, y: run(
             X, y, lambda w, t: gate(np.abs(w) / (np.abs(w).max() + 1e-12), f, tau)),
             [(f, tau) for f in (1e-4, 1e-3) for tau in (1e-3, 1e-2, 3e-2)]),
-        "two-stage: a sharper wormhole started from the first one's end": (lambda f, tau: lambda X, y: run(
+        "Orpheus: a sharper wormhole started from the first one's end": (lambda f, tau: lambda X, y: run(
             X, y, lambda w, t: gate(np.abs(w), f, tau),
             w0=run(X, y, lambda w, t: gate(np.abs(w), 1e-4, 1e-3))),
             [(1e-4, 1e-4), (1e-5, 1e-4), (1e-4, 3e-4)]),
@@ -251,7 +251,7 @@ def e15_schedules():
 
 
 def e16_support_counting():
-    print("## E16. Certified support counting vs L1\n")
+    print("## E16. Obol: certified support counting vs L1\n")
     from .destination import basis_pursuit as bp
 
     def gate(a, f, tau):
@@ -279,7 +279,7 @@ def e16_support_counting():
                 return out, True
         return w, False
 
-    def rounds(X, y):
+    def cerberus(X, y):
         """Three rounds, each six times sharper: wormhole, count, mark the top n-1, restart."""
         f, tau, w, mask = 1e-4, 1e-3, None, None
         for _ in range(3):
@@ -297,11 +297,11 @@ def e16_support_counting():
         for X, y, wt in (sparse_problem(s, k=k) for s in range(400, 460)):
             w1 = bp(X, y)
             ww = run(X, y, 1e-4, 1e-3, 3000)
-            ests = [w1, count(X, y, w1)[0], count(X, y, ww)[0], rounds(X, y)]
+            ests = [w1, count(X, y, w1)[0], count(X, y, ww)[0], cerberus(X, y)]
             hits += [rel_err(e, wt) < 1e-2 for e in ests]
         rows.append([k] + [f"{h}/60" for h in hits])
-    return table(["nonzeros", "L1", "L1 ranking, then count", "wormhole ranking, then count",
-                  "three marked rounds"], rows)
+    return table(["nonzeros", "L1", "L1 ranking, then count", "wormhole ranking, then count (Obol)",
+                  "Cerberus: three marked rounds"], rows)
 
 
 def main():

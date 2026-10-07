@@ -4,15 +4,15 @@
 |---|---|---|---|---|
 | 8 | L1 minimization | 53/60 |  |  |
 | 8 | log wormhole, fixed | 39/60 | 0 | 14 |
-| 8 | floor decayed over training | 15/60 | 0 | 38 |
-| 8 | cyclic tau: up and down three times | 20/60 | 0 | 33 |
-| 8 | speed set by size relative to the largest (coupled) | 0/60 | 0 | 53 |
-| 8 | two-stage: a sharper wormhole started from the first one's end | 41/60 | 0 | 12 |
+| 8 | Lethe: the floor fades over training | 15/60 | 0 | 38 |
+| 8 | Sisyphus: tau rolls up and back down three times | 20/60 | 0 | 33 |
+| 8 | Eris: speed set by size relative to the largest (coupled) | 0/60 | 0 | 53 |
+| 8 | Orpheus: a sharper wormhole started from the first one's end | 41/60 | 0 | 12 |
 | 11 | L1 minimization | 18/60 |  |  |
 | 11 | log wormhole, fixed | 7/60 | 0 | 11 |
-| 11 | floor decayed over training | 1/60 | 0 | 17 |
-| 11 | cyclic tau: up and down three times | 3/60 | 0 | 15 |
-| 11 | speed set by size relative to the largest (coupled) | 0/60 | 0 | 18 |
-| 11 | two-stage: a sharper wormhole started from the first one's end | 8/60 | 0 | 10 |
+| 11 | Lethe: the floor fades over training | 1/60 | 0 | 17 |
+| 11 | Sisyphus: tau rolls up and back down three times | 3/60 | 0 | 15 |
+| 11 | Eris: speed set by size relative to the largest (coupled) | 0/60 | 0 | 18 |
+| 11 | Orpheus: a sharper wormhole started from the first one's end | 8/60 | 0 | 10 |
 
 EXIT 0
