@@ -17,6 +17,22 @@ The idea started from E = mc². Can a physics-inspired map from the parameter yo
 weight the model uses change how learning goes? This repository asks that question
 of linear regression and checks every answer it gives.
 
+## At a glance
+
+Below, a **wormhole** is any reparameterization `T`: the optimizer moves `w`, the model uses `T(w)`.
+
+- A wormhole is a learning rate that depends on position, plus a range (E1 to E8).
+- When many answers fit the data, the wormhole picks which one you get. It is the minimizer of
+  a convex penalty fixed by the shape of `T`, and [THEORY.md](THEORY.md) computes it without
+  training (E11).
+- That sets a ceiling. At finding sparse answers, such a wormhole can at best tie L1
+  minimization (E12).
+- **Pandora** gets past the ceiling with many small randomized solves and a self-checking exact
+  fit. At 11 nonzeros it recovers 72 of 100 signals, where the strongest baseline tested gets
+  50 and L1 gets 31 (E17).
+- In quantum state tomography, the wormhole `ρ = AA†` prefers purer states, which no convex,
+  basis-independent penalty can do (E13, E14).
+
 ## The answer, in one line
 
 **A transform changes the route the optimizer takes. It never changes where the route ends.**

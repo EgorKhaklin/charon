@@ -1,4 +1,4 @@
-# Theory: where a wormhole ends, and what it can never do
+# Theory: where a wormhole ends, and its ceiling
 
 The experiments in the README say that a transform `T` changes the route of gradient descent,
 not the destination, except when many answers fit. This note makes that exact for the case where
