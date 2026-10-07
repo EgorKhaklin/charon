@@ -292,41 +292,40 @@ to the convex estimator under heavy noise and edges ahead at 1000 shots. Project
 squares trails both everywhere. The wormhole's bias is an estimation principle, a soft
 preference for purity, and like any prior it costs something when it is wrong.
 
-## E15. Schedules from scripture
+## E15. Schedules past the ceiling
 
 Theorem 2's assumptions are the ways past the ceiling: a metric that changes with time,
-coordinates that interact, a start away from zero. Each schedule below takes one of those routes
-and borrows its shape from a story. Sparse recovery as in E12, 60 test problems, settings picked
-on 12 others ([results/scriptures.txt](results/scriptures.txt)):
+coordinates that interact, a start away from zero. Each schedule below takes one of those routes.
+Sparse recovery as in E12, 60 test problems, settings picked on 12 others ([results/schedules.txt](results/schedules.txt)):
 
 | schedule | route | exact at 8 nonzeros | exact at 11 | beyond L1 |
 |---|---|---|---|---|
 | L1 minimization | (reference) | 53/60 | 18/60 | |
 | log wormhole, fixed | none | 39 | 7 | 0 |
-| Ezekiel 37: the breath (the floor that lets weights leave zero) withdrawn during training | time | 15 | 1 | 0 |
-| Jacob's ladder: `τ` climbs up and down three times | time | 20 | 3 | 0 |
-| Solomon: each weight's speed set by its size relative to the largest | coupling | 0 | 0 | 0 |
-| Revelation 21: a second, sharper creation started from where the first ended | start | **41** | **8** | 0 |
+| floor (what lets weights leave zero) decayed during training | time | 15 | 1 | 0 |
+| cyclic `τ`: up and down three times | time | 20 | 3 | 0 |
+| each weight's speed set by its size relative to the largest | coupling | 0 | 0 | 0 |
+| two-stage: a sharper wormhole started from where the first ended | start | **41** | **8** | 0 |
 
-Only Revelation improves on the fixed wormhole, and none recovers a single vector L1 misses.
+Only the two-stage restart improves on the fixed wormhole, and none recovers a single vector L1 misses.
 With 40 equations, an exhaustive search would recover any signal with up to 19 nonzeros, so the
 room above L1 is large. The routes the theory opens are real; no schedule tried here finds them.
 
-**E16. "Count the number" (Revelation 13:18).** L1 never asks how many nonzeros there are.
+**E16. Counting the support.** L1 never asks how many nonzeros there are.
 Counting them works like this. Rank the coordinates, then take the smallest `s` whose top `s`
 fit the equations exactly. With 40 equations, an exact fit on fewer than 20 coordinates is
-generically unique, so a hit certifies itself. "666" runs the wormhole, counts, marks the top
-39 coordinates (only marked ones may move) and restarts, three times, each round sixfold
-sharper ([results/beast.txt](results/beast.txt)):
+generically unique, so a hit certifies itself. "Three rounds" runs the wormhole, counts, marks the top
+39 coordinates (only marked ones may move) and restarts, three times, each round six times
+sharper ([results/counting.txt](results/counting.txt)):
 
-| nonzeros | L1 | L1 ranking, then count | wormhole ranking, then count | 666 |
+| nonzeros | L1 | L1 ranking, then count | wormhole ranking, then count | three rounds |
 |---|---|---|---|---|
 | 8 | 53/60 | 53 | 50 | 52 |
 | 11 | 18 | 18 | 17 | 18 |
 | 14 | 1 | 1 | 1 | 1 |
 | 17, 19 | 0 | 0 | 0 | 0 |
 
-Counting lifts the wormhole from 39 to 50 and the three rounds to 52, nearly level with L1. It
+Counting lifts the wormhole from 39 to 50, and three rounds to 52, nearly level with L1. It
 never goes past L1: when L1 fails, the true support isn't among the top-ranked coordinates of
 any of these rankings, so there is nothing to count. Beyond L1, the problem is the ranking.
 

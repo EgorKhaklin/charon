@@ -1,6 +1,6 @@
 """Wormholes within wormholes (E9), wormhole jumps (E10), where a wormhole ends (E11),
-the ceiling on what it can recover (E12), quantum wormholes (E13, E14), and schedules
-from scripture (E15, E16).
+the ceiling on what it can recover (E12), quantum wormholes (E13, E14), schedules past the
+ceiling (E15) and support counting (E16).
 
     python -m charon.frontier [e9 ... e16]     # about 25 minutes for all seven
 """
@@ -203,8 +203,8 @@ def e14_quantum_noisy():
                   "Born wormhole, small start"], rows)
 
 
-def e15_scriptures():
-    print("## E15. Schedules from scripture: time-varying, coupled and restarted wormholes vs L1\n")
+def e15_schedules():
+    print("## E15. Schedules past the ceiling: time-varying, coupled and restarted wormholes vs L1\n")
     from .destination import basis_pursuit as bp
 
     def run(X, y, metric, steps=3000, w0=None):
@@ -222,17 +222,17 @@ def e15_scriptures():
         "log wormhole, fixed": (lambda f, tau: lambda X, y: run(
             X, y, lambda w, t: gate(np.abs(w), f, tau)),
             [(f, tau) for f in (1e-4, 1e-3) for tau in (1e-3, 1e-2)]),
-        "Ezekiel 37: the breath (floor) withdrawn over training": (lambda f0, tau: lambda X, y: run(
+        "floor decayed over training": (lambda f0, tau: lambda X, y: run(
             X, y, lambda w, t: gate(np.abs(w), f0 * 1e-4**t, tau)),
             [(f0, tau) for f0 in (1e-2, 1e-1) for tau in (1e-3, 1e-2)]),
-        "Jacob's ladder: tau climbs up and down three times": (lambda f, tm: lambda X, y: run(
+        "cyclic tau: up and down three times": (lambda f, tm: lambda X, y: run(
             X, y, lambda w, t: gate(np.abs(w), f, 1e-3 * (tm / 1e-3) ** (0.5 - 0.5 * np.cos(6 * np.pi * t))
                                     * (1 - t) + 1e-3 * t)),
             [(f, tm) for f in (1e-4, 1e-3) for tm in (1e-1, 1.0)]),
-        "Solomon: speed set by size relative to the largest (coupled)": (lambda f, tau: lambda X, y: run(
+        "speed set by size relative to the largest (coupled)": (lambda f, tau: lambda X, y: run(
             X, y, lambda w, t: gate(np.abs(w) / (np.abs(w).max() + 1e-12), f, tau)),
             [(f, tau) for f in (1e-4, 1e-3) for tau in (1e-3, 1e-2, 3e-2)]),
-        "Revelation 21: a new, sharper creation started from the end": (lambda f, tau: lambda X, y: run(
+        "two-stage: a sharper wormhole started from the first one's end": (lambda f, tau: lambda X, y: run(
             X, y, lambda w, t: gate(np.abs(w), f, tau),
             w0=run(X, y, lambda w, t: gate(np.abs(w), 1e-4, 1e-3))),
             [(1e-4, 1e-4), (1e-5, 1e-4), (1e-4, 3e-4)]),
@@ -250,8 +250,8 @@ def e15_scriptures():
     return table(["nonzeros", "schedule", "exact recoveries", "beyond L1", "L1 only"], rows)
 
 
-def e16_count_the_number():
-    print("## E16. Revelation 13:18, 'count the number': certified support counting vs L1\n")
+def e16_support_counting():
+    print("## E16. Certified support counting vs L1\n")
     from .destination import basis_pursuit as bp
 
     def gate(a, f, tau):
@@ -279,8 +279,8 @@ def e16_count_the_number():
                 return out, True
         return w, False
 
-    def beast(X, y):
-        """Three rounds, each sixfold sharper: wormhole, count, mark the top n-1, restart."""
+    def rounds(X, y):
+        """Three rounds, each six times sharper: wormhole, count, mark the top n-1, restart."""
         f, tau, w, mask = 1e-4, 1e-3, None, None
         for _ in range(3):
             w = run(X, y, f, tau, 1998, w0=w, mask=mask)
@@ -297,11 +297,11 @@ def e16_count_the_number():
         for X, y, wt in (sparse_problem(s, k=k) for s in range(400, 460)):
             w1 = bp(X, y)
             ww = run(X, y, 1e-4, 1e-3, 3000)
-            ests = [w1, count(X, y, w1)[0], count(X, y, ww)[0], beast(X, y)]
+            ests = [w1, count(X, y, w1)[0], count(X, y, ww)[0], rounds(X, y)]
             hits += [rel_err(e, wt) < 1e-2 for e in ests]
         rows.append([k] + [f"{h}/60" for h in hits])
     return table(["nonzeros", "L1", "L1 ranking, then count", "wormhole ranking, then count",
-                  "666: three marked rounds"], rows)
+                  "three marked rounds"], rows)
 
 
 def main():
@@ -309,8 +309,8 @@ def main():
     FIG.mkdir(exist_ok=True)
     RES.mkdir(exist_ok=True)
     runs = {"e9": e9_nested, "e10": e10_jumps, "e11": e11_destination, "e12": e12_ceiling,
-            "e13": e13_quantum_noiseless, "e14": e14_quantum_noisy, "e15": e15_scriptures,
-            "e16": e16_count_the_number}
+            "e13": e13_quantum_noiseless, "e14": e14_quantum_noisy, "e15": e15_schedules,
+            "e16": e16_support_counting}
     want = set(sys.argv[1:]) or set(runs)
     md = [f() for k, f in runs.items() if k in want]
     if want == set(runs):
