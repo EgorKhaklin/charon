@@ -382,7 +382,7 @@ stability selection (2010). The recipe of small biased vessels plus an exact-fit
 certificate was not found in a literature search, and no randomized ensemble was found
 reported to beat the L1 transition. One limit: Pandora costs up to 200 linear programs per
 problem where L1 costs 1. More vessels do not help past about a hundred. In a side run at 14
-nonzeros, budgets of 111, 240, 418, 444 and 666 vessels all certified the same 11 of 60.
+nonzeros, budgets of 111, 240, 418, and 444 vessels all certified the same 11 of 60.
 
 Side runs (not in the script, 60 problems each):
 
